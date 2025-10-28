@@ -9,6 +9,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/users") // base path for all user endpoints
+@CrossOrigin(origins = "http://localhost:4200") // allow your Angular app
 @RequiredArgsConstructor
 public class UserController {
 
