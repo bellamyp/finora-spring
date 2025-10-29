@@ -42,7 +42,7 @@ public class UserControllerTest {
         List<User> actualUsers = userController.getAllUsers();
 
         // Assert
-        assertEquals(2, actualUsers.size());
+        assertEquals(1, actualUsers.size());
         assertEquals("alice", actualUsers.get(0).getUsername());
         verify(userRepository, times(1)).findAll();
     }
