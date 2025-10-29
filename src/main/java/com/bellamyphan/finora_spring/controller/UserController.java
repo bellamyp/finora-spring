@@ -10,7 +10,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/users") // base path for all user endpoints
 @CrossOrigin(origins = {
-        "http://localhost:4200",                // for local dev
+        "http://localhost:4200",               // for local dev
         "https://finora-angular.vercel.app"    // for Vercel deployment
 })
 @RequiredArgsConstructor
