@@ -18,6 +18,7 @@ public class RoleController {
     @GetMapping
     public List<Role> getAllRoles() {
         return roleRepository.findAll();
+        // Testing
     }
 
 }
