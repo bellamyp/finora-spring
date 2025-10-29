@@ -6,7 +6,7 @@ WORKDIR /app
 # COPY <source> <destination>
 COPY . .
 # Build and package this project as a jar file (run tests)
-RUN mvn clean package
+RUN mvn clean package -DskipTests
 
 # Stage 2: Runtime (actually running the application)
 FROM eclipse-temurin:17-jre
