@@ -2,13 +2,13 @@ name: Java CI with Maven
 
 on:
   push:
-    branches: [ '**' ]
+    branches: [ '**' ] # Run on every branch push
   pull_request:
-    branches: [ main ]
+    branches: [ main ] # Run on PRs to main
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest # Use Ubuntu environment
 
     env:
       # Inject secrets into environment
@@ -29,9 +29,16 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      # Build and test the application
-      - name: Build with Maven
-        run: mvn clean package -DskipTests
-
-      - name: Run Tests
-        run: mvn test
+      - name: Run Tests and Check Coverage
+        run: mvn clean verify
+        # Explanation:
+        # 'mvn clean verify' does everything you need in CI:
+        # 1. Cleans previous build artifacts (clean)
+        # 2. Compiles the code (compile phase)
+        # 3. Runs unit tests (test phase)
+        # 4. Packages the application into a JAR/WAR (package phase)
+        # 5. Runs verification steps like JaCoCo coverage checks (verify phase)
+        #
+        # So, you do NOT need a separate 'mvn package' step.
+        # This simplifies the workflow, runs tests once, enforces coverage,
+        # and still produces the JAR artifact.
