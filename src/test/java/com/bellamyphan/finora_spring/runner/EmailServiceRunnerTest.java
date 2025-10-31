@@ -15,7 +15,7 @@ class EmailServiceRunnerTest {
     private NotificationService notificationService;
 
     @Test
-    void run_shouldCallNotificationService() throws Exception {
+    void run_shouldCallNotificationService() {
         doNothing().when(notificationService).sendStartupNotification();
 
         EmailServiceRunner runner = new EmailServiceRunner(notificationService);
@@ -26,7 +26,7 @@ class EmailServiceRunnerTest {
     }
 
     @Test
-    void run_shouldHandleExceptionGracefully() throws Exception {
+    void run_shouldHandleExceptionGracefully() {
         doThrow(new RuntimeException("SMTP error")).when(notificationService).sendStartupNotification();
 
         EmailServiceRunner runner = new EmailServiceRunner(notificationService);
