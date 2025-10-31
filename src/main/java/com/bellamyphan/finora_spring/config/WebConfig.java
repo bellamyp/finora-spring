@@ -20,6 +20,13 @@ public class WebConfig implements WebMvcConfigurer {
     public void addCorsMappings(CorsRegistry registry) {
         // Define the allowed origins for CORS
         logger.info("Configuring CORS settings for /api/** and specific login/logout endpoints");
+
+        // Public ping endpoint (any origin, no credentials)
+        registry.addMapping("/api/ping")
+                .allowedOriginPatterns("*")  // allow all origins
+                .allowedMethods("GET");
+        logger.info("Public CORS enabled for /api/ping (all origins)");
+
         // Allow cross-origin requests for all endpoints under /api/**
         registry.addMapping("/api/**")
                 .allowedOrigins(allowedOrigins)
@@ -27,6 +34,7 @@ public class WebConfig implements WebMvcConfigurer {
                 .allowedHeaders("*")
                 .allowCredentials(true);
         logger.debug("CORS configuration for /api/** set with allowed origins: {}", (Object) allowedOrigins);
+
 //        // Allow cross-origin requests for /login endpoint
 //        registry.addMapping("/login")
 //                .allowedOrigins(allowedOrigins)
