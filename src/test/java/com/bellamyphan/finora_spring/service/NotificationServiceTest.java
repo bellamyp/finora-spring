@@ -43,11 +43,11 @@ class NotificationServiceTest {
     }
 
     // Todo: temporary disable this test.
-//    @Test
-//    void sendDailyStatusNotification_shouldCallEmailServiceWithCorrectArguments() {
+    @Test
+    void sendDailyStatusNotification_shouldCallEmailServiceWithCorrectArguments() {
 //        // Act
 //        notificationService.sendDailyStatusNotification();
-//
+
 //        // Assert
 //        ArgumentCaptor<String> toCaptor = ArgumentCaptor.forClass(String.class);
 //        ArgumentCaptor<String> subjectCaptor = ArgumentCaptor.forClass(String.class);
@@ -58,5 +58,5 @@ class NotificationServiceTest {
 //        assertEquals(recipient, toCaptor.getValue());
 //        assertEquals("Finora Daily Update", subjectCaptor.getValue());
 //        assertEquals("☀️ Finora Spring Boot is still running smoothly after 24 hours!", textCaptor.getValue());
-//    }
+    }
 }
