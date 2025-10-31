@@ -31,14 +31,15 @@ public class NotificationService {
         logger.info("Startup email sent.");
     }
 
-    // Send periodic update every 24 hours (86400000 ms)
-    @Scheduled(fixedRate = 86400000)
-    public void sendDailyStatusNotification() {
-        emailService.sendEmail(
-                recipient,
-                "Finora Daily Update",
-                "☀️ Finora Spring Boot is still running smoothly after 24 hours!"
-        );
-        logger.info("Daily status email sent.");
-    }
+    // Todo: need production email service provider, temporary disable this feature.
+//    // Send periodic update every 24 hours (86400000 ms)
+//    @Scheduled(fixedRate = 86400000)
+//    public void sendDailyStatusNotification() {
+//        emailService.sendEmail(
+//                recipient,
+//                "Finora Daily Update",
+//                "☀️ Finora Spring Boot is still running smoothly after 24 hours!"
+//        );
+//        logger.info("Daily status email sent.");
+//    }
 }
