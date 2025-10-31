@@ -18,7 +18,7 @@ public class PingController {
     private static final Logger logger = LoggerFactory.getLogger(PingController.class);
 
     // Simple in-memory rate limiter
-    private static final int MAX_REQUESTS_PER_MINUTE = 60;
+    private static final int MAX_REQUESTS_PER_MINUTE = 1000;
     private final AtomicInteger requestCount = new AtomicInteger(0);
     private Instant windowStart = Instant.now();
 
