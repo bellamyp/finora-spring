@@ -11,7 +11,7 @@ public class NotificationService {
 
     private static final Logger logger = LoggerFactory.getLogger(NotificationService.class);
     private final EmailService emailService;
-    private String recipient;
+    private final String recipient;
 
     public NotificationService(
             EmailService emailService,
