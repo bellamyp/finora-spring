@@ -13,6 +13,7 @@ public class EmailServiceRunner implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        notificationService.sendStartupNotification();
+        // Todo: Need production email service, for now disable this feature
+        //notificationService.sendStartupNotification();
     }
 }
