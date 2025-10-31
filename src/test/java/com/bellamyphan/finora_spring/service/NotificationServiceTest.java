@@ -22,7 +22,7 @@ class NotificationServiceTest {
 
     @BeforeEach
     void setUp() {
-        notificationService = new NotificationService(emailService, recipient);
+        notificationService = new NotificationService(emailService, recipient, "test");
     }
 
     @Test
@@ -42,21 +42,20 @@ class NotificationServiceTest {
         assertEquals("✅ Finora Spring Boot application has started successfully!", textCaptor.getValue());
     }
 
-    // Todo: temporary disable this test.
     @Test
     void sendDailyStatusNotification_shouldCallEmailServiceWithCorrectArguments() {
-//        // Act
-//        notificationService.sendDailyStatusNotification();
+        // Act
+        notificationService.sendDailyStatusNotification();
 
-//        // Assert
-//        ArgumentCaptor<String> toCaptor = ArgumentCaptor.forClass(String.class);
-//        ArgumentCaptor<String> subjectCaptor = ArgumentCaptor.forClass(String.class);
-//        ArgumentCaptor<String> textCaptor = ArgumentCaptor.forClass(String.class);
-//
-//        verify(emailService).sendEmail(toCaptor.capture(), subjectCaptor.capture(), textCaptor.capture());
-//
-//        assertEquals(recipient, toCaptor.getValue());
-//        assertEquals("Finora Daily Update", subjectCaptor.getValue());
-//        assertEquals("☀️ Finora Spring Boot is still running smoothly after 24 hours!", textCaptor.getValue());
+        // Assert
+        ArgumentCaptor<String> toCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<String> subjectCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<String> textCaptor = ArgumentCaptor.forClass(String.class);
+
+        verify(emailService).sendEmail(toCaptor.capture(), subjectCaptor.capture(), textCaptor.capture());
+
+        assertEquals(recipient, toCaptor.getValue());
+        assertEquals("Finora Daily Update", subjectCaptor.getValue());
+        assertEquals("☀️ Finora Spring Boot is still running smoothly after 24 hours!", textCaptor.getValue());
     }
 }

@@ -7,8 +7,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
+@ActiveProfiles("test") // ensures it's treated as non-production
 class FinoraSpringApplicationTests {
 
     @Configuration
@@ -30,12 +32,17 @@ class FinoraSpringApplicationTests {
         @Bean
         @Primary
         NotificationService notificationService(EmailService emailService) {
-            return new NotificationService(emailService, "test@example.com");
+            return new NotificationService(
+                    emailService,
+                    "test@example.com",
+                    "test" // appEnv safely set for test context
+            );
         }
     }
 
     @Test
     void contextLoads() {
-        // Context will start without connecting to SMTP
+        // Ensures Spring context loads successfully
+        // This covers NotificationService + EmailService initialization
     }
 }
