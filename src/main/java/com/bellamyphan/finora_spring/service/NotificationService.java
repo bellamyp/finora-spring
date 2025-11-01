@@ -1,5 +1,6 @@
 package com.bellamyphan.finora_spring.service;
 
+import com.bellamyphan.finora_spring.config.AppEnvironmentInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -11,15 +12,18 @@ public class NotificationService {
 
     private static final Logger logger = LoggerFactory.getLogger(NotificationService.class);
     private final EmailService emailService;
+    private final AppEnvironmentInfo appEnvironmentInfo;
     private final String recipient;
     private final String appEnv;
 
     public NotificationService(
             EmailService emailService,
+            AppEnvironmentInfo appEnvironmentInfo,
             @Value("${notification.recipient}") String recipient,
             @Value("${app.env:local}") String appEnv // default to local if not set
     ) {
         this.emailService = emailService;
+        this.appEnvironmentInfo = appEnvironmentInfo;
         this.recipient = recipient;
         this.appEnv = appEnv;
     }
@@ -32,11 +36,10 @@ public class NotificationService {
         }
 
         try {
-            emailService.sendEmail(
-                    recipient,
-                    "Finora Server Started",
-                    "✅ Finora Spring Boot application has started successfully!"
-            );
+            String body = "✅ Finora Spring Boot application has started successfully!\n\n---\n"
+                    + appEnvironmentInfo.buildInfo();
+
+            emailService.sendEmail(recipient, "Finora Server Started", body);
             logger.info("Startup email sent.");
         } catch (Exception ex) {
             logger.warn("❌ Failed to send startup email: {}", ex.getMessage());
@@ -52,11 +55,10 @@ public class NotificationService {
         }
 
         try {
-            emailService.sendEmail(
-                    recipient,
-                    "Finora Daily Update",
-                    "☀️ Finora Spring Boot is still running smoothly after 24 hours!"
-            );
+            String body = "☀️ Finora Spring Boot is still running smoothly after 24 hours!\n\n---\n"
+                    + appEnvironmentInfo.buildInfo();
+
+            emailService.sendEmail(recipient, "Finora Daily Update", body);
             logger.info("Daily status email sent.");
         } catch (Exception ex) {
             logger.warn("❌ Failed to send daily status email: {}", ex.getMessage());

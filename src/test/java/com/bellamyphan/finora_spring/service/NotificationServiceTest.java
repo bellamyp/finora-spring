@@ -1,5 +1,6 @@
 package com.bellamyphan.finora_spring.service;
 
+import com.bellamyphan.finora_spring.config.AppEnvironmentInfo;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -9,6 +10,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class NotificationServiceTest {
@@ -16,13 +18,23 @@ class NotificationServiceTest {
     @Mock
     private EmailService emailService;
 
+    @Mock
+    private AppEnvironmentInfo appEnvironmentInfo;
+
     private NotificationService notificationService;
 
     private final String recipient = "test@example.com";
 
     @BeforeEach
     void setUp() {
-        notificationService = new NotificationService(emailService, recipient, "test");
+        when(appEnvironmentInfo.buildInfo()).thenReturn("Host: test-host\nProfile: test");
+
+        notificationService = new NotificationService(
+                emailService,
+                appEnvironmentInfo,
+                recipient,
+                "test" // not production
+        );
     }
 
     @Test
@@ -39,7 +51,12 @@ class NotificationServiceTest {
 
         assertEquals(recipient, toCaptor.getValue());
         assertEquals("Finora Server Started", subjectCaptor.getValue());
-        assertEquals("✅ Finora Spring Boot application has started successfully!", textCaptor.getValue());
+        String body = textCaptor.getValue();
+        // Now includes environment info
+        assertEquals(
+                "✅ Finora Spring Boot application has started successfully!\n\n---\nHost: test-host\nProfile: test",
+                body
+        );
     }
 
     @Test
@@ -56,6 +73,10 @@ class NotificationServiceTest {
 
         assertEquals(recipient, toCaptor.getValue());
         assertEquals("Finora Daily Update", subjectCaptor.getValue());
-        assertEquals("☀️ Finora Spring Boot is still running smoothly after 24 hours!", textCaptor.getValue());
+        String body = textCaptor.getValue();
+        assertEquals(
+                "☀️ Finora Spring Boot is still running smoothly after 24 hours!\n\n---\nHost: test-host\nProfile: test",
+                body
+        );
     }
 }
