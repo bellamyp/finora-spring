@@ -1,5 +1,6 @@
 package com.bellamyphan.finora_spring;
 
+import com.bellamyphan.finora_spring.config.AppEnvironmentInfo;
 import com.bellamyphan.finora_spring.service.EmailService;
 import com.bellamyphan.finora_spring.service.NotificationService;
 import org.junit.jupiter.api.Test;
@@ -7,6 +8,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+import org.springframework.core.env.Environment;
 import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
@@ -28,14 +30,29 @@ class FinoraSpringApplicationTests {
             };
         }
 
-        // Provide NotificationService with dummy recipient
+        // Mock or simplified AppEnvironmentInfo for test
         @Bean
         @Primary
-        NotificationService notificationService(EmailService emailService) {
+        AppEnvironmentInfo appEnvironmentInfo(Environment environment) {
+            return new AppEnvironmentInfo(environment) {
+                @Override
+                public String buildInfo() {
+                    return "Test host info";
+                }
+            };
+        }
+
+        @Bean
+        @Primary
+        NotificationService notificationService(
+                EmailService emailService,
+                AppEnvironmentInfo appEnvironmentInfo
+        ) {
             return new NotificationService(
                     emailService,
+                    appEnvironmentInfo,
                     "test@example.com",
-                    "test" // appEnv safely set for test context
+                    "test" // safe non-production env
             );
         }
     }
