@@ -1,5 +1,6 @@
 package com.bellamyphan.finora_spring.controller;
 
+import com.bellamyphan.finora_spring.entity.Role;
 import com.bellamyphan.finora_spring.entity.User;
 import com.bellamyphan.finora_spring.repository.UserRepository;
 import org.junit.jupiter.api.Test;
@@ -29,18 +30,28 @@ class AuthControllerTest {
         // Arrange
         String email = "test@example.com";
         String password = "password123";
+
+        Role role = new Role();
+        role.setName("ROLE_USER");
+
         User user = new User();
         user.setEmail(email);
         user.setPassword(password);
+        user.setRole(role);
 
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
 
         // Act
-        ResponseEntity<String> response = authController.login(email, password);
+        ResponseEntity<?> response = authController.login(email, password);
 
         // Assert
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals("Login successful", response.getBody());
+        assertInstanceOf(AuthController.LoginResponse.class, response.getBody());
+
+        AuthController.LoginResponse body = (AuthController.LoginResponse) response.getBody();
+        assertEquals(email, body.email());
+        assertEquals("ROLE_USER", body.role());
+
         verify(userRepository, times(1)).findByEmail(email);
     }
 
@@ -53,7 +64,7 @@ class AuthControllerTest {
         when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
 
         // Act
-        ResponseEntity<String> response = authController.login(email, password);
+        ResponseEntity<?> response = authController.login(email, password);
 
         // Assert
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
@@ -66,14 +77,19 @@ class AuthControllerTest {
         // Arrange
         String email = "test@example.com";
         String password = "wrongPassword";
+
+        Role role = new Role();
+        role.setName("ROLE_ADMIN");
+
         User user = new User();
         user.setEmail(email);
         user.setPassword("correctPassword");
+        user.setRole(role);
 
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
 
         // Act
-        ResponseEntity<String> response = authController.login(email, password);
+        ResponseEntity<?> response = authController.login(email, password);
 
         // Assert
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
