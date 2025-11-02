@@ -11,5 +11,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
     // JpaRepository provides basic CRUD operations
     // Additional custom queries can be defined here if needed
 
-    Optional<User> findByUsername(String userName);
+    // Find user by email (used for login/authentication)
+    Optional<User> findByEmail(String email);
 }
