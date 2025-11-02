@@ -10,5 +10,5 @@ import java.util.List;
 public interface BankRepository extends JpaRepository<Bank, Long> {
     // basic CRUD included
 
-    List<Bank> findByUserEmail(String email);  // filter by user's email
+    List<Bank> findByUser_Email(String email);
 }
