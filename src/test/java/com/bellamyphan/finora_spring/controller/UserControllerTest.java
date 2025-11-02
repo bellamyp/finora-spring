@@ -7,6 +7,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
+import com.bellamyphan.finora_spring.dto.UserDto;
 import com.bellamyphan.finora_spring.entity.Role;
 import com.bellamyphan.finora_spring.entity.RoleEnum;
 import com.bellamyphan.finora_spring.entity.User;
@@ -33,11 +34,11 @@ public class UserControllerTest {
     private UserController userController;
 
     @Test
-    void getAllUsers_shouldReturnListOfUsers() {
+    void getAllUsers_shouldReturnListOfUserDTOs() {
         // Arrange
         Role role = new Role();
         role.setId(1L);
-        role.setName("USER");
+        role.setName("ROLE_USER");
 
         User user1 = new User("Alice", "alice@example.com", "password1", role);
         user1.setId(1L);
@@ -48,12 +49,20 @@ public class UserControllerTest {
         when(userRepository.findAll()).thenReturn(Arrays.asList(user1, user2));
 
         // Act
-        List<User> actualUsers = userController.getAllUsers();
+        List<UserDto> actualUsers = userController.getAllUsers();
 
         // Assert
         assertEquals(2, actualUsers.size());
-        assertEquals("Alice", actualUsers.get(0).getName());
-        assertEquals("Bob", actualUsers.get(1).getName());
+
+        UserDto dto1 = actualUsers.get(0);
+        UserDto dto2 = actualUsers.get(1);
+
+        assertEquals("Alice", dto1.getName());
+        assertEquals("ROLE_USER", dto1.getRole());
+
+        assertEquals("Bob", dto2.getName());
+        assertEquals("ROLE_USER", dto2.getRole());
+
         verify(userRepository, times(1)).findAll();
     }
 

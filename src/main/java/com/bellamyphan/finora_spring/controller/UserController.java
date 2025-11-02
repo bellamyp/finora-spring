@@ -1,5 +1,6 @@
 package com.bellamyphan.finora_spring.controller;
 
+import com.bellamyphan.finora_spring.dto.UserDto;
 import com.bellamyphan.finora_spring.entity.Role;
 import com.bellamyphan.finora_spring.entity.RoleEnum;
 import com.bellamyphan.finora_spring.entity.User;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/users") // base path for all user endpoints
@@ -23,8 +25,16 @@ public class UserController {
 
     // GET /api/users - fetch all users
     @GetMapping
-    public List<User> getAllUsers() {
-        return userRepository.findAll();
+    public List<UserDto> getAllUsers() {
+        return userRepository.findAll()
+                .stream()
+                .map(user -> new UserDto(
+                        user.getId(),
+                        user.getName(),
+                        user.getEmail(),
+                        user.getRole() != null ? user.getRole().getName() : "ROLE_USER"
+                ))
+                .collect(Collectors.toList());
     }
 
     // POST /api/users - create a new user
