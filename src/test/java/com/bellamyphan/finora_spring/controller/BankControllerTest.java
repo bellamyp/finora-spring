@@ -6,6 +6,8 @@ import com.bellamyphan.finora_spring.entity.BankType;
 import com.bellamyphan.finora_spring.entity.BankTypeEnum;
 import com.bellamyphan.finora_spring.entity.User;
 import com.bellamyphan.finora_spring.repository.BankRepository;
+import com.bellamyphan.finora_spring.repository.BankTypeRepository;
+import com.bellamyphan.finora_spring.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -24,6 +26,12 @@ class BankControllerTest {
     @Mock
     private BankRepository bankRepository;
 
+    @Mock
+    private BankTypeRepository bankTypeRepository;
+
+    @Mock
+    private UserRepository userRepository;
+
     @InjectMocks
     private BankController bankController;
 
@@ -33,7 +41,7 @@ class BankControllerTest {
         User user = new User();
         user.setEmail("test@example.com");
 
-        BankType type = new BankType("SAVINGS"); // construct with String
+        BankType type = new BankType("SAVINGS"); // type string
 
         Bank bank1 = new Bank();
         bank1.setId(1L);
@@ -47,7 +55,7 @@ class BankControllerTest {
         bank2.setType(null); // test null type
         bank2.setUser(user);
 
-        when(bankRepository.findByUserEmail("test@example.com"))
+        when(bankRepository.findByUser_Email("test@example.com"))
                 .thenReturn(List.of(bank1, bank2));
 
         // Act
@@ -59,7 +67,7 @@ class BankControllerTest {
         BankDto dto1 = result.get(0);
         assertEquals(1L, dto1.getId());
         assertEquals("Bank A", dto1.getName());
-        assertEquals(BankTypeEnum.SAVINGS, dto1.getType()); // getter converts String -> enum
+        assertEquals(BankTypeEnum.SAVINGS, dto1.getType()); // mapped from string
         assertEquals("test@example.com", dto1.getEmail());
 
         BankDto dto2 = result.get(1);
