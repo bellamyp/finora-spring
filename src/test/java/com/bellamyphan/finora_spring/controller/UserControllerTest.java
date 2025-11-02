@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 import java.util.Arrays;
 import java.util.List;
 
+import com.bellamyphan.finora_spring.entity.Role;
 import com.bellamyphan.finora_spring.entity.User;
 import com.bellamyphan.finora_spring.repository.UserRepository;
 import org.junit.jupiter.api.Test;
@@ -28,13 +29,15 @@ public class UserControllerTest {
     @Test
     void getAllUsers_shouldReturnListOfUsers() {
         // Arrange
-        User user1 = new User();
-        user1.setId(1L);
-        user1.setUsername("alice");
+        Role role = new Role();
+        role.setId(1L);
+        role.setName("USER");
 
-        User user2 = new User();
+        User user1 = new User("Alice", "alice@example.com", "password1", role);
+        user1.setId(1L);
+
+        User user2 = new User("Bob", "bob@example.com", "password2", role);
         user2.setId(2L);
-        user2.setUsername("bob");
 
         when(userRepository.findAll()).thenReturn(Arrays.asList(user1, user2));
 
@@ -43,7 +46,8 @@ public class UserControllerTest {
 
         // Assert
         assertEquals(2, actualUsers.size());
-        assertEquals("alice", actualUsers.get(0).getUsername());
+        assertEquals("Alice", actualUsers.get(0).getName());
+        assertEquals("Bob", actualUsers.get(1).getName());
         verify(userRepository, times(1)).findAll();
     }
 }
