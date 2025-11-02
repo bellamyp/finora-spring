@@ -19,15 +19,7 @@ public class EmailServiceRunner implements CommandLineRunner {
     @Override
     public void run(String... args) {
 
-        logger.info("====== ENVIRONMENT INFO TEST RUNNER ======");
-        try {
-            String info = appEnvironmentInfo.buildInfo();
-            System.out.println("\n===== Environment Info =====\n" + info + "\n============================\n");
-            logger.info("Environment Info:\n{}", info);
-        } catch (Exception ex) {
-            logger.error("Failed to gather environment info: {}", ex.getMessage(), ex);
-        }
-        logger.info("==========================================");
+        logEnvironmentInfo();
 
         try {
             notificationService.sendStartupNotification();
@@ -35,5 +27,16 @@ public class EmailServiceRunner implements CommandLineRunner {
         } catch (Exception ex) {
             logger.warn("Failed to send startup email notification: {}", ex.getMessage());
         }
+    }
+
+    private void logEnvironmentInfo() {
+        logger.info("====== ENVIRONMENT INFO TEST RUNNER ======");
+        try {
+            String info = appEnvironmentInfo.buildInfo();
+            logger.info("Environment Info:\n{}", info);
+        } catch (Exception ex) {
+            logger.error("Failed to gather environment info: {}", ex.getMessage(), ex);
+        }
+        logger.info("==========================================");
     }
 }
