@@ -46,8 +46,8 @@ public class NotificationService {
         }
     }
 
-    // Send periodic update every 24 hours (86400000 ms)
-    @Scheduled(fixedRate = 86400000)
+    // Send periodic update every 24 hours, but skip first execution
+    @Scheduled(fixedRate = 86400000, initialDelay = 86400000)
     public void sendDailyStatusNotification() {
         if (isProduction()) {
             logger.info("Skipping daily email in production environment.");
