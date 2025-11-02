@@ -1,27 +1,33 @@
 package com.bellamyphan.finora_spring.controller;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 import com.bellamyphan.finora_spring.entity.Role;
+import com.bellamyphan.finora_spring.entity.RoleEnum;
 import com.bellamyphan.finora_spring.entity.User;
+import com.bellamyphan.finora_spring.repository.RoleRepository;
 import com.bellamyphan.finora_spring.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 
 @ExtendWith(MockitoExtension.class)
 public class UserControllerTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private RoleRepository roleRepository;
 
     @InjectMocks
     private UserController userController;
@@ -49,5 +55,85 @@ public class UserControllerTest {
         assertEquals("Alice", actualUsers.get(0).getName());
         assertEquals("Bob", actualUsers.get(1).getName());
         verify(userRepository, times(1)).findAll();
+    }
+
+    @Test
+    void createUser_emailAlreadyExists_shouldReturnConflict() {
+        User user = new User("Alice", "alice@example.com", "password", null);
+        when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.of(user));
+
+        ResponseEntity<String> response = userController.createUser(user);
+
+        assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
+        assertEquals("Email already exists", response.getBody());
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void createUser_noRole_shouldAssignDefaultRole() {
+        User user = new User("Bob", "bob@example.com", "password", null);
+        Role defaultRole = new Role();
+        defaultRole.setId(1L);
+        defaultRole.setName(RoleEnum.ROLE_USER.toString());
+
+        when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.empty());
+        when(roleRepository.findByName(RoleEnum.ROLE_USER.toString())).thenReturn(Optional.of(defaultRole));
+
+        ResponseEntity<String> response = userController.createUser(user);
+
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        assertEquals("User created successfully", response.getBody());
+        assertEquals(defaultRole, user.getRole());
+        verify(userRepository, times(1)).save(user);
+    }
+
+    @Test
+    void createUser_roleIdInvalid_shouldReturnBadRequest() {
+        Role invalidRole = new Role();
+        invalidRole.setId(99L);
+
+        User user = new User("Charlie", "charlie@example.com", "password", invalidRole);
+
+        when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.empty());
+        when(roleRepository.findById(99L)).thenReturn(Optional.empty());
+
+        ResponseEntity<String> response = userController.createUser(user);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals("Invalid role ID", response.getBody());
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void createUser_defaultRoleMissing_shouldReturnInternalServerError() {
+        User user = new User("David", "david@example.com", "password", null);
+
+        when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.empty());
+        when(roleRepository.findByName(RoleEnum.ROLE_USER.toString())).thenReturn(Optional.empty());
+
+        ResponseEntity<String> response = userController.createUser(user);
+
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        assertEquals("ROLE_USER role not found in DB", response.getBody());
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void createUser_roleProvidedExists_shouldSaveUserWithRole() {
+        Role adminRole = new Role();
+        adminRole.setId(2L);
+        adminRole.setName("ROLE_ADMIN");
+
+        User user = new User("Eve", "eve@example.com", "password", adminRole);
+
+        when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.empty());
+        when(roleRepository.findById(adminRole.getId())).thenReturn(Optional.of(adminRole));
+
+        ResponseEntity<String> response = userController.createUser(user);
+
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        assertEquals("User created successfully", response.getBody());
+        assertEquals(adminRole, user.getRole());
+        verify(userRepository, times(1)).save(user);
     }
 }
