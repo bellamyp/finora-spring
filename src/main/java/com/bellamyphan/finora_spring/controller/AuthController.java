@@ -19,10 +19,9 @@ public class AuthController {
 
     private final UserRepository userRepository;
 
-    // POST /api/auth/login
     @PostMapping("/login")
-    public ResponseEntity<String> login(@RequestParam String email,
-                                        @RequestParam String password) {
+    public ResponseEntity<?> login(@RequestParam String email,
+                                   @RequestParam String password) {
         Optional<User> userOpt = userRepository.findByEmail(email);
 
         if (userOpt.isEmpty()) {
@@ -36,7 +35,10 @@ public class AuthController {
                     .body("Invalid email or password");
         }
 
-        // Successful login
-        return ResponseEntity.ok("Login successful");
+        // Successful login → return email + role as JSON
+        return ResponseEntity.ok(new LoginResponse(user.getEmail(), user.getRole().getName()));
     }
+
+    // Create a small DTO for login response
+    record LoginResponse(String email, String role) { }
 }
