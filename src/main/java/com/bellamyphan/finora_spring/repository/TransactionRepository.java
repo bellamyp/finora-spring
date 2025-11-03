@@ -1,0 +1,14 @@
+package com.bellamyphan.finora_spring.repository;
+
+import com.bellamyphan.finora_spring.entity.Transaction;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+@Repository
+public interface TransactionRepository extends JpaRepository<Transaction, Long> {
+    // JpaRepository provides basic CRUD operations
+
+    List<Transaction> findByUser_Email(String email);
+}
