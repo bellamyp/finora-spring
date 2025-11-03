@@ -5,9 +5,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
-public interface TransactionTypeRepository extends JpaRepository<TransactionType, Long> {
+public interface TransactionTypeRepository extends JpaRepository<TransactionType, UUID> {
     // JpaRepository provides basic CRUD operations
 
     Optional<TransactionType> findByType(String type); // lookup by type string

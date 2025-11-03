@@ -1,7 +1,10 @@
 package com.bellamyphan.finora_spring.entity;
 
+import lombok.Getter;
+
 import java.util.Arrays;
 
+@Getter
 public enum TransactionTypeEnum {
     INCOME(1, "Income"),
     INCOME_TAX(2, "Income Tax"),
@@ -29,14 +32,6 @@ public enum TransactionTypeEnum {
     TransactionTypeEnum(int id, String displayName) {
         this.id = id;
         this.displayName = displayName;
-    }
-
-    public int getId() {
-        return id;
-    }
-
-    public String getDisplayName() {
-        return displayName;
     }
 
     public static TransactionTypeEnum fromId(int id) {

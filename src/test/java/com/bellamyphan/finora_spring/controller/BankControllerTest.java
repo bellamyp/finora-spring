@@ -15,6 +15,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -39,18 +40,19 @@ class BankControllerTest {
     void getBanksByUserEmail_ShouldReturnMappedBankDtos() {
         // Arrange
         User user = new User();
+        user.setId(UUID.randomUUID());
         user.setEmail("test@example.com");
 
-        BankType type = new BankType("SAVINGS"); // type string
+        BankType type = new BankType("SAVINGS");
 
         Bank bank1 = new Bank();
-        bank1.setId(1L);
+        bank1.setId(UUID.randomUUID());
         bank1.setName("Bank A");
         bank1.setType(type);
         bank1.setUser(user);
 
         Bank bank2 = new Bank();
-        bank2.setId(2L);
+        bank2.setId(UUID.randomUUID());
         bank2.setName("Bank B");
         bank2.setType(null); // test null type
         bank2.setUser(user);
@@ -65,13 +67,13 @@ class BankControllerTest {
         assertEquals(2, result.size());
 
         BankDto dto1 = result.get(0);
-        assertEquals(1L, dto1.getId());
+        assertEquals(bank1.getId(), dto1.getId());
         assertEquals("Bank A", dto1.getName());
         assertEquals(BankTypeEnum.SAVINGS, dto1.getType()); // mapped from string
         assertEquals("test@example.com", dto1.getEmail());
 
         BankDto dto2 = result.get(1);
-        assertEquals(2L, dto2.getId());
+        assertEquals(bank2.getId(), dto2.getId());
         assertEquals("Bank B", dto2.getName());
         assertNull(dto2.getType()); // type was null
         assertEquals("test@example.com", dto2.getEmail());

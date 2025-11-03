@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 
 import com.bellamyphan.finora_spring.entity.Role;
 import com.bellamyphan.finora_spring.repository.RoleRepository;
@@ -29,11 +30,11 @@ public class RoleControllerTest {
     void getAllRoles_shouldReturnListOfRoles() {
         // Arrange
         Role role1 = new Role();
-        role1.setId(1L);
+        role1.setId(UUID.randomUUID());
         role1.setName("ADMIN");
 
         Role role2 = new Role();
-        role2.setId(2L);
+        role2.setId(UUID.randomUUID());
         role2.setName("USER");
 
         when(roleRepository.findAll()).thenReturn(Arrays.asList(role1, role2));
@@ -45,7 +46,7 @@ public class RoleControllerTest {
         assertEquals(2, actualRoles.size());
         assertEquals("ADMIN", actualRoles.get(0).getName());
         assertEquals("USER", actualRoles.get(1).getName());
+
         verify(roleRepository, times(1)).findAll();
     }
-
 }

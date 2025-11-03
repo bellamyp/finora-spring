@@ -13,6 +13,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -34,17 +35,19 @@ class TransactionControllerTest {
     @BeforeEach
     void setUp() {
         user = new User();
+        user.setId(UUID.randomUUID());
         user.setEmail("bellamyphan@icloud.com");
 
         bank = new Bank();
+        bank.setId(UUID.randomUUID());
         bank.setName("Capital One Savings");
 
         type = new TransactionType();
-        type.setId(9L);
-        type.setType(TransactionTypeEnum.SAVINGS.toString());
+        type.setId(UUID.randomUUID());
+        type.setType(TransactionTypeEnum.SAVINGS.getDisplayName());
 
         transaction = new Transaction();
-        transaction.setId(1L);
+        transaction.setId(UUID.randomUUID());
         transaction.setDate(LocalDate.of(2025, 10, 9));
         transaction.setAmount(250.0);
         transaction.setType(type);
@@ -65,7 +68,7 @@ class TransactionControllerTest {
         assertEquals(1, result.size());
         TransactionDto dto = result.get(0);
         assertEquals(250.0, dto.getAmount());
-        assertEquals("SAVINGS", dto.getType().toString());
+        assertEquals(TransactionTypeEnum.SAVINGS, dto.getType());
         assertEquals("Capital One Savings", dto.getBankName());
         assertEquals("bellamyphan@icloud.com", dto.getUserEmail());
 
@@ -85,8 +88,9 @@ class TransactionControllerTest {
 
         assertEquals(1, result.size());
         TransactionDto dto = result.get(0);
-        assertEquals("SAVINGS", dto.getType().toString());
+        assertEquals(TransactionTypeEnum.SAVINGS, dto.getType());
         assertEquals("Capital One Savings", dto.getBankName());
+        assertEquals("bellamyphan@icloud.com", dto.getUserEmail());
 
         verify(transactionRepository).findByUser_Email("bellamyphan@icloud.com");
         verify(transactionRepository, never()).findAll();

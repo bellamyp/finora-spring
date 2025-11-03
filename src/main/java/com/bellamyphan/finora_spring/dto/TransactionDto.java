@@ -5,11 +5,12 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 
 import java.time.LocalDate;
+import java.util.UUID;
 
 @Data
 @AllArgsConstructor
 public class TransactionDto {
-    private Long id;
+    private UUID id;
     private LocalDate date;
     private Double amount;
     private TransactionTypeEnum type;
