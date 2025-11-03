@@ -6,6 +6,7 @@ import static org.mockito.Mockito.*;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import com.bellamyphan.finora_spring.dto.UserDto;
 import com.bellamyphan.finora_spring.entity.Role;
@@ -37,14 +38,14 @@ public class UserControllerTest {
     void getAllUsers_shouldReturnListOfUserDTOs() {
         // Arrange
         Role role = new Role();
-        role.setId(1L);
+        role.setId(UUID.randomUUID());
         role.setName("ROLE_USER");
 
         User user1 = new User("Alice", "alice@example.com", "password1", role);
-        user1.setId(1L);
+        user1.setId(UUID.randomUUID());
 
         User user2 = new User("Bob", "bob@example.com", "password2", role);
-        user2.setId(2L);
+        user2.setId(UUID.randomUUID());
 
         when(userRepository.findAll()).thenReturn(Arrays.asList(user1, user2));
 
@@ -69,6 +70,8 @@ public class UserControllerTest {
     @Test
     void createUser_emailAlreadyExists_shouldReturnConflict() {
         User user = new User("Alice", "alice@example.com", "password", null);
+        user.setId(UUID.randomUUID());
+
         when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.of(user));
 
         ResponseEntity<String> response = userController.createUser(user);
@@ -81,8 +84,10 @@ public class UserControllerTest {
     @Test
     void createUser_noRole_shouldAssignDefaultRole() {
         User user = new User("Bob", "bob@example.com", "password", null);
+        user.setId(UUID.randomUUID());
+
         Role defaultRole = new Role();
-        defaultRole.setId(1L);
+        defaultRole.setId(UUID.randomUUID());
         defaultRole.setName(RoleEnum.ROLE_USER.toString());
 
         when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.empty());
@@ -99,12 +104,13 @@ public class UserControllerTest {
     @Test
     void createUser_roleIdInvalid_shouldReturnBadRequest() {
         Role invalidRole = new Role();
-        invalidRole.setId(99L);
+        invalidRole.setId(UUID.randomUUID());
 
         User user = new User("Charlie", "charlie@example.com", "password", invalidRole);
+        user.setId(UUID.randomUUID());
 
         when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.empty());
-        when(roleRepository.findById(99L)).thenReturn(Optional.empty());
+        when(roleRepository.findById(invalidRole.getId())).thenReturn(Optional.empty());
 
         ResponseEntity<String> response = userController.createUser(user);
 
@@ -116,6 +122,7 @@ public class UserControllerTest {
     @Test
     void createUser_defaultRoleMissing_shouldReturnInternalServerError() {
         User user = new User("David", "david@example.com", "password", null);
+        user.setId(UUID.randomUUID());
 
         when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.empty());
         when(roleRepository.findByName(RoleEnum.ROLE_USER.toString())).thenReturn(Optional.empty());
@@ -130,10 +137,11 @@ public class UserControllerTest {
     @Test
     void createUser_roleProvidedExists_shouldSaveUserWithRole() {
         Role adminRole = new Role();
-        adminRole.setId(2L);
+        adminRole.setId(UUID.randomUUID());
         adminRole.setName("ROLE_ADMIN");
 
         User user = new User("Eve", "eve@example.com", "password", adminRole);
+        user.setId(UUID.randomUUID());
 
         when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.empty());
         when(roleRepository.findById(adminRole.getId())).thenReturn(Optional.of(adminRole));
