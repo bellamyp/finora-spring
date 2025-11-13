@@ -15,14 +15,12 @@ public class RoleEnumTest {
     void getRoleName_shouldReturnEnumName() {
         assertEquals("ROLE_ADMIN", RoleEnum.ROLE_ADMIN.getRoleName());
         assertEquals("ROLE_USER", RoleEnum.ROLE_USER.getRoleName());
-        assertEquals("ROLE_DEMO", RoleEnum.ROLE_DEMO.getRoleName());
     }
 
     @Test
     void fromRoleName_valid_shouldReturnEnum() {
         assertEquals(RoleEnum.ROLE_ADMIN, RoleEnum.fromRoleName("ROLE_ADMIN"));
         assertEquals(RoleEnum.ROLE_USER, RoleEnum.fromRoleName("role_user")); // case-insensitive
-        assertEquals(RoleEnum.ROLE_DEMO, RoleEnum.fromRoleName("Role_Demo"));
     }
 
     @Test
@@ -36,7 +34,6 @@ public class RoleEnumTest {
     void fromDisplayName_valid_shouldReturnEnum() {
         assertEquals(RoleEnum.ROLE_ADMIN, RoleEnum.fromDisplayName("Admin"));
         assertEquals(RoleEnum.ROLE_USER, RoleEnum.fromDisplayName("user")); // case-insensitive
-        assertEquals(RoleEnum.ROLE_DEMO, RoleEnum.fromDisplayName("DEMO"));
     }
 
     @Test
@@ -50,6 +47,5 @@ public class RoleEnumTest {
     void displayNameGetter_shouldReturnCorrectValue() {
         assertEquals("Admin", RoleEnum.ROLE_ADMIN.getDisplayName());
         assertEquals("User", RoleEnum.ROLE_USER.getDisplayName());
-        assertEquals("Demo", RoleEnum.ROLE_DEMO.getDisplayName());
     }
 }
