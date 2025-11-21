@@ -4,12 +4,11 @@ import com.bellamyphan.finora_spring.entity.Bank;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
-import java.util.UUID;
+//import java.util.List;
 
 @Repository
-public interface BankRepository extends JpaRepository<Bank, UUID> {
+public interface BankRepository extends JpaRepository<Bank, String> {
     // basic CRUD included
 
-    List<Bank> findByUser_Email(String email);
+//    List<Bank> findByUser_Email(String email);
 }
