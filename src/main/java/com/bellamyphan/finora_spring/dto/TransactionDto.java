@@ -1,6 +1,6 @@
 package com.bellamyphan.finora_spring.dto;
 
-import com.bellamyphan.finora_spring.entity.TransactionTypeEnum;
+import com.bellamyphan.finora_spring.constant.TransactionTypeEnum;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 

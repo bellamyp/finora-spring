@@ -2,7 +2,7 @@ package com.bellamyphan.finora_spring.controller;
 
 //import com.bellamyphan.finora_spring.dto.UserDto;
 //import com.bellamyphan.finora_spring.entity.Role;
-//import com.bellamyphan.finora_spring.entity.RoleEnum;
+//import com.bellamyphan.finora_spring.enum2.RoleEnum;
 //import com.bellamyphan.finora_spring.entity.User;
 //import com.bellamyphan.finora_spring.repository.RoleRepository;
 //import com.bellamyphan.finora_spring.repository.UserRepository;
