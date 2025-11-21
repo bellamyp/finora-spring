@@ -1,27 +1,27 @@
 package com.bellamyphan.finora_spring.controller;
 
-import com.bellamyphan.finora_spring.dto.UserDto;
-import com.bellamyphan.finora_spring.entity.Role;
-import com.bellamyphan.finora_spring.entity.RoleEnum;
-import com.bellamyphan.finora_spring.entity.User;
-import com.bellamyphan.finora_spring.repository.RoleRepository;
-import com.bellamyphan.finora_spring.repository.UserRepository;
+//import com.bellamyphan.finora_spring.dto.UserDto;
+//import com.bellamyphan.finora_spring.entity.Role;
+//import com.bellamyphan.finora_spring.entity.RoleEnum;
+//import com.bellamyphan.finora_spring.entity.User;
+//import com.bellamyphan.finora_spring.repository.RoleRepository;
+//import com.bellamyphan.finora_spring.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+//import org.springframework.http.HttpStatus;
+//import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
+//import java.util.List;
+//import java.util.Optional;
+//import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/users") // base path for all user endpoints
 @RequiredArgsConstructor
 public class UserController {
 
-    private final UserRepository userRepository;
-    private final RoleRepository roleRepository;
+//    private final UserRepository userRepository;
+//    private final RoleRepository roleRepository;
 
 //    // GET /api/users - fetch all users
 //    @GetMapping
