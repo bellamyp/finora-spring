@@ -5,8 +5,8 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.UUID;
 
 @Entity
 @Table(name = "transactions")
@@ -15,39 +15,27 @@ import java.util.UUID;
 public class Transaction {
 
     @Id
-    @GeneratedValue
-    @Column(name = "id", updatable = false, nullable = false, columnDefinition = "UUID DEFAULT uuid_generate_v4()")
-    private UUID id;
+    @Column(name = "id", nullable = false, length = 10)
+    private String id; // Java will generate NanoID 10-char
+
+    @ManyToOne(fetch = FetchType.EAGER, optional = false)
+    @JoinColumn(name = "group_id", nullable = false, foreignKey = @ForeignKey(name = "fk_transactions_transaction_groups"))
+    @NotNull(message = "Transaction group is required")
+    private TransactionGroup group;
 
     @NotNull
     @Column(name = "date", nullable = false)
     private LocalDate date;
 
-    @NotNull
-    @Column(name = "amount", nullable = false)
-    private Double amount;
+    @Column(name = "amount", nullable = false, precision = 12, scale = 2)
+    @NotNull(message = "Amount is required")
+    private BigDecimal amount;
 
-    @ManyToOne(fetch = FetchType.EAGER, optional = false)
-    @JoinColumn(name = "type_id", nullable = false, foreignKey = @ForeignKey(name = "fk_transactions_transaction_types"))
-    private TransactionType type;
-
-    @Column(name = "notes", columnDefinition = "TEXT")
+    @Column(name = "notes", length = 255)
     private String notes;
 
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "bank_id", foreignKey = @ForeignKey(name = "fk_transactions_banks"))
-    private Bank bank;
-
     @ManyToOne(fetch = FetchType.EAGER, optional = false)
-    @JoinColumn(name = "user_id", nullable = false, foreignKey = @ForeignKey(name = "fk_transactions_users"))
-    private User user;
-
-    public Transaction(LocalDate date, Double amount, TransactionType type, String notes, Bank bank, User user) {
-        this.date = date;
-        this.amount = amount;
-        this.type = type;
-        this.notes = notes;
-        this.bank = bank;
-        this.user = user;
-    }
+    @JoinColumn(name = "bank_id", nullable = false, foreignKey = @ForeignKey(name = "fk_transactions_banks"))
+    @NotNull(message = "Bank is required")
+    private Bank bank;
 }

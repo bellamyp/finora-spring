@@ -1,4 +1,4 @@
-package com.bellamyphan.finora_spring.entity;
+package com.bellamyphan.finora_spring.constant;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -13,7 +13,7 @@ public enum RoleEnum {
     private final String displayName;
 
     public String getRoleName() {
-        return this.name(); // "ROLE_ADMIN", etc.
+        return this.name(); // "ROLE_ADMIN", "ROLE_USER"
     }
 
     public static RoleEnum fromRoleName(String roleName) {

@@ -1,6 +1,6 @@
 package com.bellamyphan.finora_spring.dto;
 
-import com.bellamyphan.finora_spring.entity.BankTypeEnum;
+import com.bellamyphan.finora_spring.constant.BankTypeEnum;
 import lombok.Data;
 
 import java.time.LocalDate;

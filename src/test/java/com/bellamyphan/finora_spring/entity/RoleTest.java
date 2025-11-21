@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 import java.util.Arrays;
 import java.util.List;
 
+import com.bellamyphan.finora_spring.constant.RoleEnum;
 import com.bellamyphan.finora_spring.repository.RoleRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,24 +18,24 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-public class RoleTest {
+class RoleTest {
 
     @Mock
     private RoleRepository roleRepository;
 
     @InjectMocks
-    private RoleServiceMock roleService; // a simple wrapper to call repository
+    private RoleServiceMock roleService; // Simple wrapper to call repository
 
     @Test
     void testRoleConstructorAndGettersSetters() {
         // Arrange
-        Role role = new Role("ADMIN");
+        Role role = new Role(RoleEnum.ROLE_ADMIN);
 
         // Act & Assert
-        assertEquals("ADMIN", role.getName());
+        assertEquals(RoleEnum.ROLE_ADMIN, role.getName());
 
-        role.setName("USER");
-        assertEquals("USER", role.getName());
+        role.setName(RoleEnum.ROLE_USER);
+        assertEquals(RoleEnum.ROLE_USER, role.getName());
 
         // id is null before saving
         assertNull(role.getId());
@@ -43,8 +44,8 @@ public class RoleTest {
     @Test
     void testSaveAndFindAllRoles() {
         // Arrange
-        Role role1 = new Role("ADMIN");
-        Role role2 = new Role("USER");
+        Role role1 = new Role(RoleEnum.ROLE_ADMIN);
+        Role role2 = new Role(RoleEnum.ROLE_USER);
 
         when(roleRepository.findAll()).thenReturn(Arrays.asList(role1, role2));
 
@@ -53,8 +54,8 @@ public class RoleTest {
 
         // Assert
         assertEquals(2, roles.size());
-        assertEquals("ADMIN", roles.get(0).getName());
-        assertEquals("USER", roles.get(1).getName());
+        assertEquals(RoleEnum.ROLE_ADMIN, roles.get(0).getName());
+        assertEquals(RoleEnum.ROLE_USER, roles.get(1).getName());
 
         verify(roleRepository, times(1)).findAll();
     }
