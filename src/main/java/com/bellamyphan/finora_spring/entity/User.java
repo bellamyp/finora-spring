@@ -22,6 +22,12 @@ public class User {
     @NotBlank(message = "Email is required")
     private String email;
 
+    @PrePersist
+    @PreUpdate
+    public void normalizeEmail() {
+        setEmail(email); // reuse setter logic
+    }
+
     @Column(name = "password", nullable = false, length = 60)
     @NotBlank(message = "Password is required")
     private String password;
@@ -46,4 +52,15 @@ public class User {
         this.password = password;
         this.role = role;
     }
+
+    // Override setter to force lowercase
+    public void setEmail(String email) {
+        if (email != null) {
+            this.email = email.toLowerCase();
+        } else {
+            this.email = null;
+        }
+    }
+
+
 }
