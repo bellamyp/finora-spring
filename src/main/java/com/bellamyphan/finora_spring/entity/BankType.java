@@ -1,14 +1,15 @@
 package com.bellamyphan.finora_spring.entity;
 
+import com.bellamyphan.finora_spring.constant.BankTypeEnum;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@Entity
-@Table(name = "bank_types")
 @Data
 @NoArgsConstructor
+@Entity
+@Table(name = "bank_types")
 public class BankType {
 
     @Id
@@ -19,12 +20,6 @@ public class BankType {
     @Column(name = "type", nullable = false, unique = true, length = 50)
     @NotBlank(message = "Bank type is required")
     private BankTypeEnum type;
-
-    // Constructor with both id and enum
-    public BankType(String id, BankTypeEnum type) {
-        this.id = id;
-        this.type = type;
-    }
 
     // Constructor with only enum (id generated separately)
     public BankType(BankTypeEnum type) {
