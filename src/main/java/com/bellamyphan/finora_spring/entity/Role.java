@@ -1,5 +1,6 @@
 package com.bellamyphan.finora_spring.entity;
 
+import com.bellamyphan.finora_spring.constant.RoleEnum;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
