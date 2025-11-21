@@ -6,39 +6,33 @@ import java.util.Arrays;
 
 @Getter
 public enum TransactionTypeEnum {
-    INCOME(1, "Income"),
-    INCOME_TAX(2, "Income Tax"),
-    INVEST(3, "Invest"),
-    SAVINGS(4, "Savings"),
-    HEALTH(5, "Health"),
-    COLLEGE_WORK(6, "College/Work"),
-    CAR(7, "Car"),
-    GAS(8, "Gas"),
-    GROCERY(9, "Grocery"),
-    GOVERNMENT(10, "Government"),
-    HOUSING(11, "Housing"),
-    UTILITY(12, "Utility"),
-    PHONE(13, "Phone"),
-    PET(14, "Pet"),
-    ENTERTAINMENT(15, "Entertainment"),
-    MEAL(16, "Meal"),
-    SHOP(17, "Shop"),
-    CLOTHES(18, "Clothes"),
-    CHARITY(19, "Charity");
+    INCOME("Income"),
+    INCOME_TAX("Income Tax"),
+    INVEST("Invest"),
+    SAVINGS("Savings"),
+    HEALTH("Health"),
+    COLLEGE_WORK("College/Work"),
+    CAR("Car"),
+    GAS("Gas"),
+    GROCERY("Grocery"),
+    GOVERNMENT("Government"),
+    HOUSING("Housing"),
+    UTILITY("Utility"),
+    PHONE("Phone"),
+    PET("Pet"),
+    ENTERTAINMENT("Entertainment"),
+    MEAL("Meal"),
+    SHOP("Shop"),
+    CLOTHES("Clothes"),
+    CHARITY("Charity"),
+    CREDIT_PAYMENT("Credit Payment"),
+    TRANSFER("Transfer"),
+    OTHERS("Others");
 
-    private final int id;
     private final String displayName;
 
-    TransactionTypeEnum(int id, String displayName) {
-        this.id = id;
+    TransactionTypeEnum(String displayName) {
         this.displayName = displayName;
-    }
-
-    public static TransactionTypeEnum fromId(int id) {
-        return Arrays.stream(values())
-                .filter(e -> e.id == id)
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Invalid TransactionType ID: " + id));
     }
 
     public static TransactionTypeEnum fromDisplayName(String name) {
