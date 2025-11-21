@@ -1,4 +1,4 @@
-package com.bellamyphan.finora_spring.entity;
+package com.bellamyphan.finora_spring.constant;
 
 import lombok.Getter;
 

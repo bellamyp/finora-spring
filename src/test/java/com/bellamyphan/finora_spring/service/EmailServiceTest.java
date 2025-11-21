@@ -1,5 +1,6 @@
 package com.bellamyphan.finora_spring.service;
 
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -40,6 +41,7 @@ class EmailServiceTest {
         verify(mailSender).send(captor.capture());
 
         SimpleMailMessage sentMessage = captor.getValue();
+        Assertions.assertNotNull(sentMessage.getTo());
         assertEquals(to, sentMessage.getTo()[0]);
         assertEquals(subject, sentMessage.getSubject());
         assertEquals(text, sentMessage.getText());
