@@ -4,7 +4,6 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import java.util.UUID;
 
 @Entity
 @Table(name = "users")
@@ -13,18 +12,17 @@ import java.util.UUID;
 public class User {
 
     @Id
-    @GeneratedValue
-    @Column(name = "id", updatable = false, nullable = false, columnDefinition = "UUID DEFAULT uuid_generate_v4()")
-    private UUID id;
+    @Column(name = "id", nullable = false, length = 10)
+    private String id; // NanoID 10-char
 
-    @Column(name = "name", length = 100)
+    @Column(name = "name", length = 50)
     private String name;
 
-    @Column(name = "email", nullable = false, unique = true)
+    @Column(name = "email", nullable = false, unique = true, length = 60)
     @NotBlank(message = "Email is required")
     private String email;
 
-    @Column(name = "password", nullable = false)
+    @Column(name = "password", nullable = false, length = 60)
     @NotBlank(message = "Password is required")
     private String password;
 
@@ -32,7 +30,16 @@ public class User {
     @JoinColumn(name = "role_id", nullable = false, foreignKey = @ForeignKey(name = "fk_users_roles"))
     private Role role;
 
-    // Constructor without id
+    // Constructor with all fields
+    public User(String id, String name, String email, String password, Role role) {
+        this.id = id;
+        this.name = name;
+        this.email = email;
+        this.password = password;
+        this.role = role;
+    }
+
+    // Constructor without id (id can be generated in service layer)
     public User(String name, String email, String password, Role role) {
         this.name = name;
         this.email = email;

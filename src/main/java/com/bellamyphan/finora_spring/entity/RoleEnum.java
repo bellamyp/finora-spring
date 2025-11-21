@@ -8,13 +8,12 @@ import lombok.Getter;
 public enum RoleEnum {
 
     ROLE_ADMIN("Admin"),
-    ROLE_USER("User"),
-    ROLE_DEMO("Demo");
+    ROLE_USER("User");
 
     private final String displayName;
 
     public String getRoleName() {
-        return this.name(); // "ROLE_ADMIN", etc.
+        return this.name(); // "ROLE_ADMIN", "ROLE_USER"
     }
 
     public static RoleEnum fromRoleName(String roleName) {
