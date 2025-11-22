@@ -36,15 +36,6 @@ public class User {
     @JoinColumn(name = "role_id", nullable = false, foreignKey = @ForeignKey(name = "fk_users_roles"))
     private Role role;
 
-    // Constructor with all fields
-    public User(String id, String name, String email, String password, Role role) {
-        this.id = id;
-        this.name = name;
-        this.email = email;
-        this.password = password;
-        this.role = role;
-    }
-
     // Constructor without id (id can be generated in service layer)
     public User(String name, String email, String password, Role role) {
         this.name = name;
@@ -61,6 +52,4 @@ public class User {
             this.email = null;
         }
     }
-
-
 }

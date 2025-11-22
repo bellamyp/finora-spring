@@ -25,16 +25,6 @@ class BrandTest {
     }
 
     @Test
-    void testAllArgsConstructor() {
-        Brand brand = new Brand("brand67890", "Adidas", "Germany");
-
-        // Assertions
-        assertEquals("brand67890", brand.getId());
-        assertEquals("Adidas", brand.getName());
-        assertEquals("Germany", brand.getLocation());
-    }
-
-    @Test
     void testConstructorWithoutId() {
         Brand brand = new Brand("Puma", "Germany");
 

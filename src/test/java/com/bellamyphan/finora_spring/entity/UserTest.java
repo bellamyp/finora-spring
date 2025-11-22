@@ -40,20 +40,6 @@ class UserTest {
     }
 
     @Test
-    void testAllArgsConstructor() {
-        Role role = new Role(RoleEnum.ROLE_ADMIN);
-
-        // Using constructor with ID
-        User user = new User("user123", "John Doe", "johndoe@email.com", "password123", role);
-
-        assertEquals("user123", user.getId());
-        assertEquals("John Doe", user.getName());
-        assertEquals("johndoe@email.com", user.getEmail());
-        assertEquals("password123", user.getPassword());
-        assertEquals(role, user.getRole());
-    }
-
-    @Test
     void testEqualsAndHashCode() {
         Role role = new Role(RoleEnum.ROLE_USER);
         User user1 = new User("John Doe", "johndoe@email.com", "pass", role);

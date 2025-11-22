@@ -21,12 +21,6 @@ public class Role {
     @NotNull(message = "Role is required")
     private RoleEnum name;
 
-    // Constructor with both id and enum
-    public Role(String id, RoleEnum name) {
-        this.id = id;
-        this.name = name;
-    }
-
     // Constructor with only enum (id can be generated separately)
     public Role(RoleEnum name) {
         this.name = name;

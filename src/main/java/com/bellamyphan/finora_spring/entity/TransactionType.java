@@ -21,12 +21,6 @@ public class TransactionType {
     @NotNull(message = "Transaction type is required")
     private TransactionTypeEnum type;
 
-    // Constructor with id
-    public TransactionType(String id, TransactionTypeEnum type) {
-        this.id = id;
-        this.type = type;
-    }
-
     // Constructor without id (NanoID can be generated)
     public TransactionType(TransactionTypeEnum type) {
         this.type = type;

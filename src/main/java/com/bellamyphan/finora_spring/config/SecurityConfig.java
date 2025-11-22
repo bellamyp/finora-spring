@@ -49,8 +49,10 @@ public class SecurityConfig {
                         // Allow public registration (POST /api/users)
                         .requestMatchers(HttpMethod.POST, "/api/users").permitAll()
 
-                        // USER role can access transactions and banks
-                        .requestMatchers("/api/transactions/**", "/api/banks/**")
+                        // USER role can access those api url
+                        .requestMatchers("/api/transactions/**",
+                                "/api/banks/**",
+                                "/api/brands/**")
                         .hasRole("USER")
 
                         // ADMIN role can access everything else

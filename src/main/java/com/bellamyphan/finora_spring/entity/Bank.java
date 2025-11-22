@@ -43,14 +43,4 @@ public class Bank {
         this.type = type;
         this.user = user;
     }
-
-    // Constructor including id
-    public Bank(String id, String name, LocalDate openingDate, LocalDate closingDate, BankType type, User user) {
-        this.id = id;
-        this.name = name;
-        this.openingDate = openingDate;
-        this.closingDate = closingDate;
-        this.type = type;
-        this.user = user;
-    }
 }
