@@ -4,8 +4,6 @@ import com.bellamyphan.finora_spring.constant.BankTypeEnum;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
-import java.util.UUID;
-
 @Data
 @AllArgsConstructor
 public class BankDto {
