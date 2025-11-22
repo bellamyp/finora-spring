@@ -27,4 +27,12 @@ public class EmailService {
 
         mailSender.send(message);
     }
+
+    public void sendOtpEmail(String to, String otp) {
+        String subject = "Finore: Your OTP Code";
+        String text = "Your one-time password (OTP) is: " + otp + "\n\n" +
+                "It will expire in 5 minutes. Do not share this code with anyone.";
+
+        sendEmail(to, subject, text);
+    }
 }
