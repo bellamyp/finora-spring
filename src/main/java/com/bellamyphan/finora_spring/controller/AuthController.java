@@ -1,9 +1,9 @@
 package com.bellamyphan.finora_spring.controller;
 
-import com.bellamyphan.finora_spring.dto.UserDto;
 import com.bellamyphan.finora_spring.entity.User;
 import com.bellamyphan.finora_spring.repository.UserRepository;
 import com.bellamyphan.finora_spring.service.EmailService;
+import com.bellamyphan.finora_spring.service.JwtService;
 import com.bellamyphan.finora_spring.service.OtpService;
 import com.bellamyphan.finora_spring.service.PasswordService;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +26,7 @@ public class AuthController {
     private final UserRepository userRepository;
     private final PasswordService passwordService;
     private final OtpService otpService;
+    private final JwtService jwtService;
     private final EmailService emailService;
 
     @PostMapping("/login")
@@ -45,10 +46,18 @@ public class AuthController {
                     .body("Invalid email or password");
         }
 
-        // Successful login → return UserDto
-        // Todo: implement JWT token in the future.
-        UserDto userDto = new UserDto(user.getName(), user.getEmail(), user.getRole().toString());
-        return ResponseEntity.ok(userDto);
+        // Generate JWT token with userId, email, role
+        String token = jwtService.generateToken(
+                user.getEmail(),
+                user.getId(),
+                user.getRole().getName() // RoleEnum
+        );
+
+
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "token", token
+        ));
     }
 
     @PostMapping("/login/otp/request")
@@ -78,7 +87,6 @@ public class AuthController {
     public ResponseEntity<?> verifyOtp(@RequestParam String email,
                                        @RequestParam String otp) {
         String lowerCaseEmail = email.toLowerCase();
-
         OtpService.OtpEntry entry = otpService.getOtp(lowerCaseEmail);
 
         // Check existence, expiry, and match
@@ -102,16 +110,16 @@ public class AuthController {
         }
 
         User user = userOpt.get();
-        UserDto userDto = new UserDto(
-                user.getName(),
+        // Generate JWT token for verified OTP
+        String token = jwtService.generateToken(
                 user.getEmail(),
-                user.getRole().getName().getDisplayName()
+                user.getId(),
+                user.getRole().getName() // RoleEnum
         );
 
         return ResponseEntity.ok(Map.of(
                 "success", true,
-                "message", "OTP verified successfully",
-                "data", userDto
+                "token", token
         ));
     }
 }

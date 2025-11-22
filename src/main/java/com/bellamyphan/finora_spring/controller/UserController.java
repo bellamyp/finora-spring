@@ -29,7 +29,7 @@ public class UserController {
                 .map(user -> new UserDto(
                         user.getName(),
                         user.getEmail(),
-                        user.getRole().getName().getDisplayName()
+                        user.getRole().getName().name()
                 ))
                 .collect(Collectors.toList());
     }
