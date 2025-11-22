@@ -34,15 +34,6 @@ public class TransactionGroup {
     @Column(name = "notes", length = 255)
     private String notes;
 
-    // Constructor with all fields
-    public TransactionGroup(String id, TransactionType type, Brand brand, LocalDate date, String notes) {
-        this.id = id;
-        this.type = type;
-        this.brand = brand;
-        this.date = date;
-        this.notes = notes;
-    }
-
     // Constructor without ID (Java can generate NanoID separately)
     public TransactionGroup(TransactionType type, Brand brand, LocalDate date, String notes) {
         this.type = type;

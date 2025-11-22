@@ -64,30 +64,4 @@ class BankTest {
         assertEquals(type, bank.getType());
         assertEquals(user, bank.getUser());
     }
-
-    @Test
-    void testAllArgsConstructorWithId() {
-        User user = new User();
-        user.setId("user789");
-        user.setEmail("user3@example.com");
-
-        BankType type = new BankType(BankTypeEnum.CHECKING);
-
-        Bank bank = new Bank(
-                "bank123456", // id included
-                "Bank Constructor",
-                LocalDate.of(2022, 5, 15),
-                null, // closingDate null
-                type,
-                user
-        );
-
-        // Assertions
-        assertEquals("bank123456", bank.getId(), "ID should be set by all-args constructor");
-        assertEquals("Bank Constructor", bank.getName());
-        assertEquals(LocalDate.of(2022, 5, 15), bank.getOpeningDate());
-        assertNull(bank.getClosingDate());
-        assertEquals(type, bank.getType());
-        assertEquals(user, bank.getUser());
-    }
 }

@@ -25,13 +25,6 @@ public class Brand {
     @Column(name = "location", length = 50)
     private String location;
 
-    // Constructor with all fields
-    public Brand(String id, String name, String location) {
-        this.id = id;
-        this.name = name;
-        this.location = location;
-    }
-
     // Constructor without ID (Java can generate NanoID separately)
     public Brand(String name, String location) {
         this.name = name;
