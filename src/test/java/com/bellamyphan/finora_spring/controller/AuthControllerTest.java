@@ -138,6 +138,7 @@ class AuthControllerTest {
         assertEquals(HttpStatus.OK, response.getStatusCode());
 
         Map<?, ?> body = (Map<?, ?>) response.getBody();
+        assertNotNull(body);
         assertFalse((Boolean) body.get("success"));
         assertEquals("User not found", body.get("message"));
     }
