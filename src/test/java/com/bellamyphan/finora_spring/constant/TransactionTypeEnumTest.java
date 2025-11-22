@@ -1,25 +1,37 @@
 package com.bellamyphan.finora_spring.constant;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@ExtendWith(MockitoExtension.class)
 class TransactionTypeEnumTest {
 
+    // ----------------------------
+    // 1️⃣ Test valid parsing
+    // ----------------------------
     @Test
-    void testFromDisplayNameValid() {
-        assertEquals(TransactionTypeEnum.INCOME, TransactionTypeEnum.fromDisplayName("Income"));
-        assertEquals(TransactionTypeEnum.HEALTH, TransactionTypeEnum.fromDisplayName("health")); // case-insensitive
-        assertEquals(TransactionTypeEnum.CAR, TransactionTypeEnum.fromDisplayName("Car"));
+    void testFromNameValid() {
+        assertEquals(TransactionTypeEnum.INCOME, TransactionTypeEnum.fromName("Income"));
+        assertEquals(TransactionTypeEnum.HEALTH, TransactionTypeEnum.fromName("health")); // case-insensitive
+        assertEquals(TransactionTypeEnum.CAR, TransactionTypeEnum.fromName("Car"));
     }
 
+    // ----------------------------
+    // 2️⃣ Test invalid parsing
+    // ----------------------------
     @Test
-    void testFromDisplayNameInvalid() {
+    void testFromNameInvalid() {
         Exception ex = assertThrows(IllegalArgumentException.class,
-                () -> TransactionTypeEnum.fromDisplayName("Unknown"));
-        assertTrue(ex.getMessage().contains("Invalid TransactionType name"));
+                () -> TransactionTypeEnum.fromName("Unknown"));
+
+        assertTrue(ex.getMessage().contains("Invalid TransactionTypeEnum name"));
+    }
+
+    // ----------------------------
+    // 3️⃣ Optional: Test enum size (ensures no accidental changes)
+    // ----------------------------
+    @Test
+    void testEnumCount() {
+        assertEquals(22, TransactionTypeEnum.values().length); // update count if enum changes
     }
 }

@@ -6,39 +6,34 @@ import java.util.Arrays;
 
 @Getter
 public enum TransactionTypeEnum {
-    INCOME("Income"),
-    INCOME_TAX("Income Tax"),
-    INVEST("Invest"),
-    SAVINGS("Savings"),
-    HEALTH("Health"),
-    COLLEGE_WORK("College/Work"),
-    CAR("Car"),
-    GAS("Gas"),
-    GROCERY("Grocery"),
-    GOVERNMENT("Government"),
-    HOUSING("Housing"),
-    UTILITY("Utility"),
-    PHONE("Phone"),
-    PET("Pet"),
-    ENTERTAINMENT("Entertainment"),
-    MEAL("Meal"),
-    SHOP("Shop"),
-    CLOTHES("Clothes"),
-    CHARITY("Charity"),
-    CREDIT_PAYMENT("Credit Payment"),
-    TRANSFER("Transfer"),
-    OTHERS("Others");
+    INCOME,
+    INCOME_TAX,
+    INVEST,
+    SAVINGS,
+    HEALTH,
+    COLLEGE_WORK,
+    CAR,
+    GAS,
+    GROCERY,
+    GOVERNMENT,
+    HOUSING,
+    UTILITY,
+    PHONE,
+    PET,
+    ENTERTAINMENT,
+    MEAL,
+    SHOP,
+    CLOTHES,
+    CHARITY,
+    CREDIT_PAYMENT,
+    TRANSFER,
+    OTHERS;
 
-    private final String displayName;
-
-    TransactionTypeEnum(String displayName) {
-        this.displayName = displayName;
-    }
-
-    public static TransactionTypeEnum fromDisplayName(String name) {
+    // Optional: parse from string (case-insensitive)
+    public static TransactionTypeEnum fromName(String name) {
         return Arrays.stream(values())
-                .filter(e -> e.displayName.equalsIgnoreCase(name))
+                .filter(e -> e.name().equalsIgnoreCase(name))
                 .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Invalid TransactionType name: " + name));
+                .orElseThrow(() -> new IllegalArgumentException("Invalid TransactionTypeEnum name: " + name));
     }
 }

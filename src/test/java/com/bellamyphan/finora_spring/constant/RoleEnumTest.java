@@ -1,39 +1,42 @@
 package com.bellamyphan.finora_spring.constant;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.MockedStatic;
-import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.mockStatic;
 
-@ExtendWith(MockitoExtension.class)
-class RoleEnumMockitoTest {
+class RoleEnumTest {
 
+    // ----------------------------
+    // 1️⃣ Test valid role parsing
+    // ----------------------------
     @Test
-    void testFromRoleNameWithMockito() {
-        try (MockedStatic<RoleEnum> mocked = mockStatic(RoleEnum.class)) {
-            mocked.when(() -> RoleEnum.fromRoleName("ROLE_ADMIN"))
-                    .thenReturn(RoleEnum.ROLE_ADMIN);
-
-            RoleEnum result = RoleEnum.fromRoleName("ROLE_ADMIN");
-            assertEquals(RoleEnum.ROLE_ADMIN, result);
-
-            mocked.verify(() -> RoleEnum.fromRoleName("ROLE_ADMIN"));
-        }
+    void testFromRoleNameValid() {
+        assertEquals(RoleEnum.ROLE_ADMIN, RoleEnum.fromRoleName("ROLE_ADMIN"));
+        assertEquals(RoleEnum.ROLE_ADMIN, RoleEnum.fromRoleName("role_admin"));  // case-insensitive
+        assertEquals(RoleEnum.ROLE_USER, RoleEnum.fromRoleName("ROLE_USER"));
+        assertEquals(RoleEnum.ROLE_USER, RoleEnum.fromRoleName("role_user"));
     }
 
+    // ----------------------------
+    // 2️⃣ Test invalid input throws exception
+    // ----------------------------
     @Test
-    void testFromDisplayNameWithMockito() {
-        try (MockedStatic<RoleEnum> mocked = mockStatic(RoleEnum.class)) {
-            mocked.when(() -> RoleEnum.fromDisplayName("User"))
-                    .thenReturn(RoleEnum.ROLE_USER);
+    void testFromRoleNameInvalid() {
+        Exception ex = assertThrows(IllegalArgumentException.class,
+                () -> RoleEnum.fromRoleName("manager"));
 
-            RoleEnum result = RoleEnum.fromDisplayName("User");
-            assertEquals(RoleEnum.ROLE_USER, result);
+        assertTrue(ex.getMessage().contains("No matching role"));
+    }
 
-            mocked.verify(() -> RoleEnum.fromDisplayName("User"));
-        }
+    // ----------------------------
+    // 3️⃣ Validate enum values order & count
+    // ----------------------------
+    @Test
+    void testEnumValues() {
+        RoleEnum[] values = RoleEnum.values();
+
+        assertEquals(2, values.length);
+        assertSame(RoleEnum.ROLE_ADMIN, values[0]);
+        assertSame(RoleEnum.ROLE_USER, values[1]);
     }
 }

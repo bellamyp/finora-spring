@@ -7,15 +7,10 @@ import lombok.Getter;
 @AllArgsConstructor
 public enum RoleEnum {
 
-    ROLE_ADMIN("Admin"),
-    ROLE_USER("User");
+    ROLE_ADMIN,
+    ROLE_USER;
 
-    private final String displayName;
-
-    public String getRoleName() {
-        return this.name(); // "ROLE_ADMIN", "ROLE_USER"
-    }
-
+    // Optional: find enum from role name string (case-insensitive)
     public static RoleEnum fromRoleName(String roleName) {
         for (RoleEnum role : values()) {
             if (role.name().equalsIgnoreCase(roleName)) {
@@ -23,14 +18,5 @@ public enum RoleEnum {
             }
         }
         throw new IllegalArgumentException("No matching role for name: " + roleName);
-    }
-
-    public static RoleEnum fromDisplayName(String displayName) {
-        for (RoleEnum role : values()) {
-            if (role.displayName.equalsIgnoreCase(displayName)) {
-                return role;
-            }
-        }
-        throw new IllegalArgumentException("No matching role for display name: " + displayName);
     }
 }

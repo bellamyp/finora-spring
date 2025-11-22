@@ -1,11 +1,11 @@
 package com.bellamyphan.finora_spring.controller;
 
 import com.bellamyphan.finora_spring.constant.RoleEnum;
-import com.bellamyphan.finora_spring.dto.UserDto;
 import com.bellamyphan.finora_spring.entity.Role;
 import com.bellamyphan.finora_spring.entity.User;
 import com.bellamyphan.finora_spring.repository.UserRepository;
 import com.bellamyphan.finora_spring.service.EmailService;
+import com.bellamyphan.finora_spring.service.JwtService;
 import com.bellamyphan.finora_spring.service.OtpService;
 import com.bellamyphan.finora_spring.service.PasswordService;
 import org.junit.jupiter.api.Test;
@@ -38,8 +38,13 @@ class AuthControllerTest {
     @Mock
     private EmailService emailService;
 
+    @Mock
+    private JwtService jwtService;
+
     @InjectMocks
     private AuthController authController;
+
+    private static final String USER_ID = "AbC123xYz9";   // 10-char nanoID
 
     // ------------------ /login tests ------------------
     @Test
@@ -50,61 +55,53 @@ class AuthControllerTest {
         Role role = new Role(RoleEnum.ROLE_USER);
 
         User user = new User();
+        user.setId(USER_ID);
         user.setEmail(email);
         user.setPassword("hashedPassword");
-        user.setName("Test User");
         user.setRole(role);
 
-        when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+        when(userRepository.findByEmail(email.toLowerCase())).thenReturn(Optional.of(user));
         when(passwordService.matches(password, "hashedPassword")).thenReturn(true);
+        when(jwtService.generateToken(email, USER_ID, RoleEnum.ROLE_USER)).thenReturn("mocked-jwt-token");
 
         ResponseEntity<?> response = authController.login(email, password);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertInstanceOf(UserDto.class, response.getBody());
 
-        UserDto dto = (UserDto) response.getBody();
-        assertEquals("Test User", dto.getName());
-        assertEquals(email, dto.getEmail());
-        assertEquals(role.toString(), dto.getRole());
-
-        verify(userRepository, times(1)).findByEmail(email);
+        Map<?, ?> body = (Map<?, ?>) response.getBody();
+        assertNotNull(body);
+        assertEquals(true, body.get("success"));
+        assertEquals("mocked-jwt-token", body.get("token"));
     }
 
     @Test
     void testLoginUserNotFound() {
-        String email = "notfound@example.com";
-        String password = "anyPassword";
+        String email = "missing@example.com";
 
-        when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
+        when(userRepository.findByEmail(email.toLowerCase())).thenReturn(Optional.empty());
 
-        ResponseEntity<?> response = authController.login(email, password);
+        ResponseEntity<?> response = authController.login(email, "any");
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
         assertEquals("Invalid email or password", response.getBody());
-        verify(userRepository, times(1)).findByEmail(email);
     }
 
     @Test
     void testLoginWrongPassword() {
         String email = "test@example.com";
-        String password = "wrongPassword";
-
-        Role role = new Role(RoleEnum.ROLE_ADMIN);
 
         User user = new User();
+        user.setId(USER_ID);
         user.setEmail(email);
-        user.setPassword("correctPassword");
-        user.setRole(role);
+        user.setPassword("correctHashed");
 
-        when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
-        when(passwordService.matches(password, "correctPassword")).thenReturn(false);
+        when(userRepository.findByEmail(email.toLowerCase())).thenReturn(Optional.of(user));
+        when(passwordService.matches("wrongPass", "correctHashed")).thenReturn(false);
 
-        ResponseEntity<?> response = authController.login(email, password);
+        ResponseEntity<?> response = authController.login(email, "wrongPass");
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
         assertEquals("Invalid email or password", response.getBody());
-        verify(userRepository, times(1)).findByEmail(email);
     }
 
     // ------------------ /login/otp/request tests ------------------
@@ -113,14 +110,16 @@ class AuthControllerTest {
         String email = "test@example.com";
 
         User user = new User();
+        user.setId(USER_ID);
         user.setEmail(email);
 
-        when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+        when(userRepository.findByEmail(email.toLowerCase())).thenReturn(Optional.of(user));
         when(otpService.generateOtp()).thenReturn("123456");
 
         ResponseEntity<?> response = authController.requestOtp(email);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
+
         Map<?, ?> body = (Map<?, ?>) response.getBody();
         assertNotNull(body);
         assertTrue((Boolean) body.get("success"));
@@ -132,13 +131,12 @@ class AuthControllerTest {
 
     @Test
     void testRequestOtpUserNotFound() {
-        String email = "missing@example.com";
+        when(userRepository.findByEmail("missing@example.com")).thenReturn(Optional.empty());
 
-        when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
-
-        ResponseEntity<?> response = authController.requestOtp(email);
+        ResponseEntity<?> response = authController.requestOtp("missing@example.com");
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
+
         Map<?, ?> body = (Map<?, ?>) response.getBody();
         assertNotNull(body);
         assertFalse((Boolean) body.get("success"));
@@ -154,43 +152,43 @@ class AuthControllerTest {
         Role role = new Role(RoleEnum.ROLE_USER);
 
         User user = new User();
+        user.setId(USER_ID);
         user.setEmail(email);
-        user.setName("Test User");
         user.setRole(role);
 
-        OtpService.OtpEntry entry = new OtpService.OtpEntry(otp, LocalDateTime.now().plusMinutes(5));
+        OtpService.OtpEntry entry =
+                new OtpService.OtpEntry(otp, LocalDateTime.now().plusMinutes(5));
 
         when(otpService.getOtp(email)).thenReturn(entry);
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+        when(jwtService.generateToken(email, USER_ID, RoleEnum.ROLE_USER)).thenReturn("mocked-jwt");
 
         ResponseEntity<?> response = authController.verifyOtp(email, otp);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
+
         Map<?, ?> body = (Map<?, ?>) response.getBody();
         assertNotNull(body);
         assertTrue((Boolean) body.get("success"));
-        assertEquals("OTP verified successfully", body.get("message"));
-        assertNotNull(body.get("data"));
+        assertEquals("mocked-jwt", body.get("token"));
 
         verify(otpService).clearOtp(email);
     }
 
     @Test
     void testVerifyOtpInvalidOrExpired() {
-        String email = "test@example.com";
-        String otp = "wrongOtp";
+        when(otpService.getOtp("test@example.com")).thenReturn(null);
 
-        when(otpService.getOtp(email)).thenReturn(null);
-
-        ResponseEntity<?> response = authController.verifyOtp(email, otp);
+        ResponseEntity<?> response = authController.verifyOtp("test@example.com", "000000");
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
+
         Map<?, ?> body = (Map<?, ?>) response.getBody();
         assertNotNull(body);
         assertFalse((Boolean) body.get("success"));
         assertEquals("Invalid or expired OTP", body.get("message"));
 
-        verify(otpService).clearOtp(email);
+        verify(otpService).clearOtp("test@example.com");
     }
 
     @Test
@@ -198,7 +196,8 @@ class AuthControllerTest {
         String email = "missing@example.com";
         String otp = "123456";
 
-        OtpService.OtpEntry entry = new OtpService.OtpEntry(otp, LocalDateTime.now().plusMinutes(5));
+        OtpService.OtpEntry entry =
+                new OtpService.OtpEntry(otp, LocalDateTime.now().plusMinutes(5));
 
         when(otpService.getOtp(email)).thenReturn(entry);
         when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
@@ -206,6 +205,7 @@ class AuthControllerTest {
         ResponseEntity<?> response = authController.verifyOtp(email, otp);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
+
         Map<?, ?> body = (Map<?, ?>) response.getBody();
         assertNotNull(body);
         assertFalse((Boolean) body.get("success"));
