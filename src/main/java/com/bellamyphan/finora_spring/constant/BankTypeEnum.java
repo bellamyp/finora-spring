@@ -7,23 +7,18 @@ import lombok.Getter;
 @AllArgsConstructor
 public enum BankTypeEnum {   // ✅ changed from class to enum
 
-    CHECKING("Checking"),
-    SAVINGS("Savings"),
-    CREDIT("Credit"),
-    REWARDS("Rewards");
+    CHECKING,
+    SAVINGS,
+    CREDIT,
+    REWARDS;
 
-    private final String displayName;
-
-    public static BankTypeEnum fromDisplayName(String displayName) {
+    // Optional: find enum from name string (case-insensitive)
+    public static BankTypeEnum fromName(String name) {
         for (BankTypeEnum bankEnum : values()) {
-            if (bankEnum.displayName.equalsIgnoreCase(displayName)) {
+            if (bankEnum.name().equalsIgnoreCase(name)) {
                 return bankEnum;
             }
         }
-        throw new IllegalArgumentException("No matching BankTypeEnum for display name: " + displayName);
-    }
-
-    public String getEnumName() {
-        return this.name(); // e.g., "CHECKING"
+        throw new IllegalArgumentException("No matching BankTypeEnum for name: " + name);
     }
 }
