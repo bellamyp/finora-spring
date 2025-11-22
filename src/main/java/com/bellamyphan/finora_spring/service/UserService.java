@@ -21,32 +21,56 @@ public class UserService {
 
     public User createUser(UserRequestDto userDto) {
 
-        User user = new User();
-        user.setName(userDto.getName());
-        user.setEmail(userDto.getEmail());
+        // 1. Validate email
+        if (userDto.getEmail() == null || userDto.getEmail().isBlank()) {
+            throw new IllegalArgumentException("Email cannot be empty");
+        }
 
-        // Check if userDto has password before hashing
+        // 2. Check if email already exists
+        if (userRepository.existsByEmail(userDto.getEmail().toLowerCase())) {
+            throw new IllegalArgumentException("Email already exists: " + userDto.getEmail());
+        }
+
+        // 3. Validate password
         if (userDto.getPassword() == null || userDto.getPassword().isBlank()) {
             throw new IllegalArgumentException("Password cannot be empty");
         }
 
-        // Hash the password
+        // 4. Convert role string to RoleEnum, default to ROLE_USER
+        RoleEnum roleEnum;
+        try {
+            if (userDto.getRole() == null || userDto.getRole().isBlank()) {
+                roleEnum = RoleEnum.ROLE_USER;
+            } else {
+                roleEnum = RoleEnum.valueOf(userDto.getRole());
+            }
+        } catch (IllegalArgumentException ex) {
+            // Invalid role string -> default to ROLE_USER
+            roleEnum = RoleEnum.ROLE_USER;
+        }
+
+        // 5. Fetch role entity from DB, default to ROLE_USER if not found
+        Role role = roleRepository.findByName(roleEnum)
+                .orElseGet(() -> roleRepository.findByName(RoleEnum.ROLE_USER)
+                        .orElseThrow(() -> new RuntimeException("ROLE_USER not found in DB")));
+
+        // 6. Create User entity
+        User user = new User();
+        user.setName(userDto.getName());
+        user.setEmail(userDto.getEmail());
         user.setPassword(passwordService.hash(userDto.getPassword()));
+        user.setRole(role);
 
-        // Fetch existing role from DB
-        Role roleUser = roleRepository.findByName(RoleEnum.ROLE_USER)
-                .orElseThrow(() -> new RuntimeException("ROLE_USER not found"));
-        user.setRole(roleUser);
-
-        // Save new userDto to the DB
+        // 7. Generate unique NanoID with retry
         for (int i = 0; i < 10; i++) {
             try {
                 user.setId(nanoIdService.generate());
                 return userRepository.save(user);
             } catch (DataIntegrityViolationException ignored) {
-                // retry
+                // Retry with new ID
             }
         }
+
         throw new RuntimeException("Failed to generate unique NanoID after 10 attempts");
     }
 }

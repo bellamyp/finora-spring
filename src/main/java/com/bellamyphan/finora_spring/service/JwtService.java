@@ -76,5 +76,4 @@ public class JwtService {
             return null; // invalid token
         }
     }
-
 }

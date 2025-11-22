@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -44,6 +45,9 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Public endpoints
                         .requestMatchers("/api/ping", "/api/auth/**").permitAll()
+
+                        // Allow public registration (POST /api/users)
+                        .requestMatchers(HttpMethod.POST, "/api/users").permitAll()
 
                         // USER role can access transactions and banks
                         .requestMatchers("/api/transactions/**", "/api/banks/**")
