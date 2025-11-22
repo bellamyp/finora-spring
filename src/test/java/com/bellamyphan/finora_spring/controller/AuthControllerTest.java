@@ -13,6 +13,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import java.time.LocalDateTime;
@@ -59,7 +60,7 @@ class AuthControllerTest {
 
         ResponseEntity<?> response = authController.login(email, password);
 
-        assertEquals(200, response.getStatusCodeValue());
+        assertEquals(HttpStatus.OK, response.getStatusCode());
         assertInstanceOf(UserDto.class, response.getBody());
 
         UserDto dto = (UserDto) response.getBody();
@@ -79,7 +80,7 @@ class AuthControllerTest {
 
         ResponseEntity<?> response = authController.login(email, password);
 
-        assertEquals(401, response.getStatusCodeValue());
+        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
         assertEquals("Invalid email or password", response.getBody());
         verify(userRepository, times(1)).findByEmail(email);
     }
@@ -101,7 +102,7 @@ class AuthControllerTest {
 
         ResponseEntity<?> response = authController.login(email, password);
 
-        assertEquals(401, response.getStatusCodeValue());
+        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
         assertEquals("Invalid email or password", response.getBody());
         verify(userRepository, times(1)).findByEmail(email);
     }
@@ -119,8 +120,9 @@ class AuthControllerTest {
 
         ResponseEntity<?> response = authController.requestOtp(email);
 
-        assertEquals(200, response.getStatusCodeValue());
+        assertEquals(HttpStatus.OK, response.getStatusCode());
         Map<?, ?> body = (Map<?, ?>) response.getBody();
+        assertNotNull(body);
         assertTrue((Boolean) body.get("success"));
         assertEquals("OTP sent to your email", body.get("message"));
 
@@ -136,8 +138,9 @@ class AuthControllerTest {
 
         ResponseEntity<?> response = authController.requestOtp(email);
 
-        assertEquals(200, response.getStatusCodeValue());
+        assertEquals(HttpStatus.OK, response.getStatusCode());
         Map<?, ?> body = (Map<?, ?>) response.getBody();
+        assertNotNull(body);
         assertFalse((Boolean) body.get("success"));
         assertEquals("User not found", body.get("message"));
     }
@@ -162,8 +165,9 @@ class AuthControllerTest {
 
         ResponseEntity<?> response = authController.verifyOtp(email, otp);
 
-        assertEquals(200, response.getStatusCodeValue());
+        assertEquals(HttpStatus.OK, response.getStatusCode());
         Map<?, ?> body = (Map<?, ?>) response.getBody();
+        assertNotNull(body);
         assertTrue((Boolean) body.get("success"));
         assertEquals("OTP verified successfully", body.get("message"));
         assertNotNull(body.get("data"));
@@ -180,8 +184,9 @@ class AuthControllerTest {
 
         ResponseEntity<?> response = authController.verifyOtp(email, otp);
 
-        assertEquals(200, response.getStatusCodeValue());
+        assertEquals(HttpStatus.OK, response.getStatusCode());
         Map<?, ?> body = (Map<?, ?>) response.getBody();
+        assertNotNull(body);
         assertFalse((Boolean) body.get("success"));
         assertEquals("Invalid or expired OTP", body.get("message"));
 
@@ -200,8 +205,9 @@ class AuthControllerTest {
 
         ResponseEntity<?> response = authController.verifyOtp(email, otp);
 
-        assertEquals(200, response.getStatusCodeValue());
+        assertEquals(HttpStatus.OK, response.getStatusCode());
         Map<?, ?> body = (Map<?, ?>) response.getBody();
+        assertNotNull(body);
         assertFalse((Boolean) body.get("success"));
         assertEquals("User not found", body.get("message"));
 
