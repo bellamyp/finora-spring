@@ -9,7 +9,7 @@ import java.util.UUID;
 @Data
 @AllArgsConstructor
 public class BankDto {
-    private UUID id;
+    private String id;
     private String name;
     private BankTypeEnum type; // now returns enum
     private String email;

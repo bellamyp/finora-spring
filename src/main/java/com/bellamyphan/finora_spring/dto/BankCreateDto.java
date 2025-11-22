@@ -11,5 +11,4 @@ public class BankCreateDto {
     private LocalDate openingDate;
     private LocalDate closingDate;
     private BankTypeEnum type; // Enum representing bank type
-    private String userEmail;   // user email to link bank to
 }
