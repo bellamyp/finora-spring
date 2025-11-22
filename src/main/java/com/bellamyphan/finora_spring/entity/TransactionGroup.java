@@ -31,7 +31,7 @@ public class TransactionGroup {
     @NotNull(message = "Transaction date is required")
     private LocalDate date;
 
-    @Column(name = "notes", length = 255)
+    @Column(name = "notes")
     private String notes;
 
     // Constructor without ID (Java can generate NanoID separately)
