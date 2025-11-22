@@ -4,11 +4,11 @@ import com.bellamyphan.finora_spring.dto.BrandCreateDto;
 import com.bellamyphan.finora_spring.dto.BrandDto;
 import com.bellamyphan.finora_spring.entity.Brand;
 import com.bellamyphan.finora_spring.repository.BrandRepository;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
 
 import java.util.List;
@@ -17,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 class BrandServiceTest {
 
     @Mock
@@ -27,11 +28,6 @@ class BrandServiceTest {
 
     @InjectMocks
     private BrandService brandService;
-
-    @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this);
-    }
 
     // -------------------------
     // Test: searchByName
