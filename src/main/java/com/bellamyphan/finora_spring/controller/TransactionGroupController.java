@@ -21,15 +21,32 @@ public class TransactionGroupController {
     private final TransactionGroupService transactionGroupService;
     private final UserService userService;
 
+    /**
+     * Get transaction groups for the current user.
+     * Optional query parameter: status=pending|posted
+     */
     @GetMapping
-    public ResponseEntity<List<TransactionGroupResponseDto>> getGroupsForCurrentUser() {
-
+    public ResponseEntity<List<TransactionGroupResponseDto>> getGroupsForCurrentUser(
+            @RequestParam(value = "status", required = false, defaultValue = "posted") String status
+    ) {
         // Get user ID from JWT
         String userId = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userService.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found: " + userId));
 
-        List<TransactionGroupResponseDto> groups = transactionGroupService.getTransactionGroupsForUser(user);
+        List<TransactionGroupResponseDto> groups;
+
+        switch (status.toLowerCase()) {
+            case "pending":
+                groups = transactionGroupService.getPendingTransactionGroupsForUser(user);
+                break;
+            case "posted":
+                groups = transactionGroupService.getPostedTransactionGroupsForUser(user);
+                break;
+            default:
+                throw new IllegalArgumentException("Invalid status: " + status + ". Must be 'pending' or 'posted'.");
+        }
+
         return ResponseEntity.ok(groups);
     }
 

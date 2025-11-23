@@ -28,34 +28,54 @@ public class TransactionGroupService {
     private final TransactionTypeRepository transactionTypeRepository;
     private final BankRepository bankRepository;
 
-    public List<TransactionGroupResponseDto> getTransactionGroupsForUser(User user) {
+    // -------------------------------
+    // Get pending transactions for user
+    // -------------------------------
+    public List<TransactionGroupResponseDto> getPendingTransactionGroupsForUser(User user) {
+        return transactionGroupRepository.findAll().stream()
+                .map(group -> {
+                    List<TransactionResponseDto> transactions = transactionRepository
+                            .findByGroup(group).stream()
+                            .filter(tx -> tx.getBank().getUser().getId().equals(user.getId()))
+                            .filter(tx -> pendingTransactionRepository.existsByTransactionId(tx.getId()))
+                            .map(this::toDto)
+                            .collect(Collectors.toList());
 
-        List<TransactionGroup> groups = transactionGroupRepository.findAll();
+                    if (transactions.isEmpty()) {
+                        return null; // mark empty groups for filtering
+                    }
 
-        return groups.stream().map(group -> {
-            TransactionGroupResponseDto dto = new TransactionGroupResponseDto();
-            dto.setId(group.getId());
+                    TransactionGroupResponseDto dto = new TransactionGroupResponseDto();
+                    dto.setId(group.getId());
+                    dto.setTransactions(transactions);
+                    return dto;
+                })
+                .filter(dto -> dto != null) // remove empty groups
+                .collect(Collectors.toList());
+    }
 
-            // Fetch transactions for this group **filtered by user's banks**
-            List<TransactionResponseDto> transactions = transactionRepository
-                    .findByGroup(group).stream()
-                    .filter(tx -> tx.getBank().getUser().getId().equals(user.getId()))
-                    .map(tx -> {
-                        TransactionResponseDto txDto = new TransactionResponseDto();
-                        txDto.setId(tx.getId());
-                        txDto.setDate(tx.getDate().toString());
-                        txDto.setAmount(tx.getAmount());
-                        txDto.setNotes(tx.getNotes());
-                        txDto.setBankId(tx.getBank().getId());
-                        txDto.setBrandId(tx.getBrand().getId());
-                        txDto.setTypeId(tx.getType().getId());
-                        return txDto;
-                    })
-                    .collect(Collectors.toList());
+    // -------------------------------
+    // Get posted transactions for user
+    // -------------------------------
+    public List<TransactionGroupResponseDto> getPostedTransactionGroupsForUser(User user) {
+        return transactionGroupRepository.findAll().stream()
+                .map(group -> {
+                    List<TransactionResponseDto> transactions = transactionRepository
+                            .findByGroup(group).stream()
+                            .filter(tx -> tx.getBank().getUser().getId().equals(user.getId()))
+                            .filter(tx -> !pendingTransactionRepository.existsByTransactionId(tx.getId()))
+                            .map(this::toDto)
+                            .collect(Collectors.toList());
 
-            dto.setTransactions(transactions);
-            return dto;
-        }).collect(Collectors.toList());
+                    if (transactions.isEmpty()) return null;
+
+                    TransactionGroupResponseDto dto = new TransactionGroupResponseDto();
+                    dto.setId(group.getId());
+                    dto.setTransactions(transactions);
+                    return dto;
+                })
+                .filter(dto -> dto != null)
+                .collect(Collectors.toList());
     }
 
     public String createTransactionGroup(TransactionGroupCreateDto dto) {
@@ -102,6 +122,18 @@ public class TransactionGroupService {
     // ============================================================
     //   PRIVATE HELPERS
     // ============================================================
+
+    private TransactionResponseDto toDto(Transaction tx) {
+        TransactionResponseDto txDto = new TransactionResponseDto();
+        txDto.setId(tx.getId());
+        txDto.setDate(tx.getDate().toString());
+        txDto.setAmount(tx.getAmount());
+        txDto.setNotes(tx.getNotes());
+        txDto.setBankId(tx.getBank().getId());
+        txDto.setBrandId(tx.getBrand().getId());
+        txDto.setTypeId(tx.getType().getId());
+        return txDto;
+    }
 
     private TransactionGroup saveGroupWithRetry(TransactionGroup group) {
         for (int i = 0; i < 10; i++) {
