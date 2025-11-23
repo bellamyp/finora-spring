@@ -7,10 +7,10 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 
-@Entity
-@Table(name = "banks")
 @Data
 @NoArgsConstructor
+@Entity
+@Table(name = "banks")
 public class Bank {
 
     @Id
