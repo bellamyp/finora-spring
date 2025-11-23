@@ -10,9 +10,9 @@ import java.util.List;
 @Repository
 public interface BrandRepository extends JpaRepository<Brand, String> {
 
-    // Search by name (case-insensitive)
-    List<Brand> findByNameContainingIgnoreCase(String name);
-
     // Check if a brand with same name + location + user exists
     boolean existsByNameIgnoreCaseAndLocationIgnoreCaseAndUser(String name, String location, User user);
+
+    // Find all brands for a specific user
+    List<Brand> findByUserOrderByNameAsc(User user);
 }

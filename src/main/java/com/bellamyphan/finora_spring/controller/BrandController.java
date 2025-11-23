@@ -11,6 +11,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/brands")
@@ -34,14 +37,23 @@ public class BrandController {
     }
 
     // -------------------------
-    // SEARCH BRAND BY NAME
+    // GET brands by user
     // -------------------------
-    @GetMapping("/search")
-    public ResponseEntity<?> searchBrandByName(@RequestParam String name) {
-        if (name == null || name.isBlank()) {
-            return ResponseEntity.badRequest().body("Search name cannot be empty.");
-        }
+    @GetMapping
+    public List<BrandDto> getBrandsByUser() {
 
-        return ResponseEntity.ok(brandService.searchByName(name));
+        // Get username/email from JWT token
+        String userId = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userService.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+
+        return brandService.findBrandsByUser(user)
+                .stream()
+                .map(brand -> new BrandDto(
+                        brand.getId(),
+                        brand.getName(),
+                        brand.getLocation()
+                ))
+                .collect(Collectors.toList());
     }
 }
