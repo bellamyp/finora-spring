@@ -23,7 +23,7 @@ public class TransactionGroupService {
     private final TransactionTypeRepository transactionTypeRepository;
     private final BankRepository bankRepository;
 
-    public String  createTransactionGroup(User user, TransactionGroupCreateDto dto) {
+    public String  createTransactionGroup(TransactionGroupCreateDto dto) {
 
         // ---------------- GET REPORT ----------------
         // Todo: get the latest report here to add to the transaction group.

@@ -24,12 +24,7 @@ public class TransactionGroupController {
 
     @PostMapping
     public ResponseEntity<?> createTransactionGroup(@RequestBody TransactionGroupCreateDto dto) {
-
-        String userId = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userService.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
-
-        String groupId = transactionGroupService.createTransactionGroup(user, dto);
+        String groupId = transactionGroupService.createTransactionGroup(dto);
 
         return ResponseEntity.ok(Map.of(
                 "success", true,
