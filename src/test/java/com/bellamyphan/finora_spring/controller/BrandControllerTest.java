@@ -2,10 +2,10 @@ package com.bellamyphan.finora_spring.controller;
 
 import com.bellamyphan.finora_spring.dto.BrandCreateDto;
 import com.bellamyphan.finora_spring.dto.BrandDto;
+import com.bellamyphan.finora_spring.entity.Brand;
 import com.bellamyphan.finora_spring.entity.User;
 import com.bellamyphan.finora_spring.service.BrandService;
 import com.bellamyphan.finora_spring.service.UserService;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -64,8 +64,10 @@ class BrandControllerTest {
         when(brandService.createBrand(any(BrandCreateDto.class), any(User.class)))
                 .thenReturn(response);
 
+        // Act
         ResponseEntity<BrandDto> result = brandController.createBrand(request);
 
+        // Assert
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(result.getBody()).isNotNull();
         assertThat(result.getBody().getId()).isEqualTo("id123");
@@ -75,30 +77,37 @@ class BrandControllerTest {
     }
 
     // -------------------------
-    // GET /api/brands/search
+    // GET /api/brands
     // -------------------------
     @Test
-    void searchBrandByName_shouldReturnList() {
-        List<BrandDto> brands = List.of(
-                new BrandDto("id1", "Nike", "Houston"),
-                new BrandDto("id2", "Nine West", "Dallas")
-        );
+    void getBrandsByUser_shouldReturnListOfBrandDto() {
+        // Mock JWT authentication
+        SecurityContextHolder.setContext(securityContext);
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        when(authentication.getName()).thenReturn("user123");
 
-        when(brandService.searchByName("ni")).thenReturn(brands);
+        // Mock User
+        User user1 = new User();
+        user1.setId("user123");
+        when(userService.findById("user123")).thenReturn(Optional.of(user1));
 
-        ResponseEntity<?> result = brandController.searchBrandByName("ni");
+        when(brandService.findBrandsByUser(user1)).thenReturn(List.of(
+                new Brand(user1, "Apple", "Cupertino"),
+                new Brand(user1, "Samsung", "Seoul")
+        ));
 
-        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(result.getBody()).isInstanceOf(List.class);
-        Assertions.assertNotNull(result.getBody());
-        assertThat(((List<?>) result.getBody()).size()).isEqualTo(2);
-    }
+        // Instead of using Brand entity in controller conversion, you can mock BrandDto mapping if needed
+        // Here we directly check that controller maps Brand → BrandDto correctly
+        List<BrandDto> result = brandController.getBrandsByUser();
 
-    @Test
-    void searchBrandByName_emptyName_shouldReturnBadRequest() {
-        ResponseEntity<?> result = brandController.searchBrandByName("");
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0).getName()).isEqualTo("Apple");
+        assertThat(result.get(0).getLocation()).isEqualTo("Cupertino");
 
-        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertThat(result.getBody()).isEqualTo("Search name cannot be empty.");
+        assertThat(result.get(1).getName()).isEqualTo("Samsung");
+        assertThat(result.get(1).getLocation()).isEqualTo("Seoul");
+
+        verify(userService).findById("user123");
+        verify(brandService).findBrandsByUser(user1);
     }
 }

@@ -13,8 +13,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
 
-import java.util.List;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
@@ -37,24 +35,6 @@ class BrandServiceTest {
         mockUser.setId("user123");
         mockUser.setName("Test User");
         mockUser.setEmail("test@example.com");
-    }
-
-    // -------------------------
-    // Test: searchByName
-    // -------------------------
-    @Test
-    void searchByName_shouldReturnDtos() {
-        Brand brand1 = new Brand(mockUser, "Nike", "Houston");
-        Brand brand2 = new Brand(mockUser, "Nine West", "Dallas");
-
-        when(brandRepository.findByNameContainingIgnoreCase("ni"))
-                .thenReturn(List.of(brand1, brand2));
-
-        List<BrandDto> result = brandService.searchByName("ni");
-
-        assertThat(result).hasSize(2);
-        assertThat(result.get(0).getName()).isEqualTo("Nike");
-        assertThat(result.get(1).getLocation()).isEqualTo("Dallas");
     }
 
     // -------------------------

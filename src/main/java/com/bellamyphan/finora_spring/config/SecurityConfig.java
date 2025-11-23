@@ -52,7 +52,8 @@ public class SecurityConfig {
                         // USER role can access those api url
                         .requestMatchers("/api/transactions/**",
                                 "/api/banks/**",
-                                "/api/brands/**")
+                                "/api/brands/**",
+                                "/api/transaction-groups/**")
                         .hasRole("USER")
 
                         // ADMIN role can access everything else

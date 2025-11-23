@@ -18,11 +18,11 @@ public class BrandService {
     private final BrandRepository brandRepository;
     private final NanoIdService nanoIdService;
 
-    public List<BrandDto> searchByName(String name) {
-        return brandRepository.findByNameContainingIgnoreCase(name)
-                .stream()
-                .map(this::toDto)
-                .toList();
+    /**
+     * Fetch all brands for a given user
+     */
+    public List<Brand> findBrandsByUser(User user) {
+        return brandRepository.findByUserOrderByNameAsc(user);
     }
 
     public BrandDto createBrand(BrandCreateDto request, User user) {
