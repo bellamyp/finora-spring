@@ -6,8 +6,8 @@ import com.bellamyphan.finora_spring.entity.Bank;
 import com.bellamyphan.finora_spring.entity.BankType;
 import com.bellamyphan.finora_spring.entity.User;
 import com.bellamyphan.finora_spring.repository.BankTypeRepository;
-import com.bellamyphan.finora_spring.repository.UserRepository;
 import com.bellamyphan.finora_spring.service.BankService;
+import com.bellamyphan.finora_spring.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -25,8 +25,8 @@ import java.util.stream.Collectors;
 public class BankController {
 
     private final BankTypeRepository bankTypeRepository;
-    private final UserRepository userRepository;
     private final BankService bankService;
+    private final UserService userService;
 
     // -----------------------
     // GET banks by user email
@@ -36,7 +36,7 @@ public class BankController {
 
         // Get username/email from JWT token
         String userId = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userRepository.findById(userId)
+        User user = userService.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found: " + userId));
 
         return bankService.findBanksByUser(user)
@@ -58,7 +58,7 @@ public class BankController {
 
         // Get username/email from JWT token
         String userId = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userRepository.findById(userId)
+        User user = userService.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found: " + userId));
 
         // Find bank type

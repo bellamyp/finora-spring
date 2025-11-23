@@ -5,6 +5,7 @@ import com.bellamyphan.finora_spring.dto.BrandDto;
 import com.bellamyphan.finora_spring.entity.User;
 import com.bellamyphan.finora_spring.service.BrandService;
 import com.bellamyphan.finora_spring.service.UserService;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -89,6 +90,7 @@ class BrandControllerTest {
 
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(result.getBody()).isInstanceOf(List.class);
+        Assertions.assertNotNull(result.getBody());
         assertThat(((List<?>) result.getBody()).size()).isEqualTo(2);
     }
 
