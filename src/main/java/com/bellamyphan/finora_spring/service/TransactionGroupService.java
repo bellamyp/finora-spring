@@ -3,6 +3,8 @@ package com.bellamyphan.finora_spring.service;
 import com.bellamyphan.finora_spring.constant.TransactionTypeEnum;
 import com.bellamyphan.finora_spring.dto.TransactionCreateDto;
 import com.bellamyphan.finora_spring.dto.TransactionGroupCreateDto;
+import com.bellamyphan.finora_spring.dto.TransactionGroupResponseDto;
+import com.bellamyphan.finora_spring.dto.TransactionResponseDto;
 import com.bellamyphan.finora_spring.entity.*;
 import com.bellamyphan.finora_spring.repository.*;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +13,8 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -24,7 +28,37 @@ public class TransactionGroupService {
     private final TransactionTypeRepository transactionTypeRepository;
     private final BankRepository bankRepository;
 
-    public String  createTransactionGroup(TransactionGroupCreateDto dto) {
+    public List<TransactionGroupResponseDto> getTransactionGroupsForUser(User user) {
+
+        List<TransactionGroup> groups = transactionGroupRepository.findAll();
+
+        return groups.stream().map(group -> {
+            TransactionGroupResponseDto dto = new TransactionGroupResponseDto();
+            dto.setId(group.getId());
+
+            // Fetch transactions for this group **filtered by user's banks**
+            List<TransactionResponseDto> transactions = transactionRepository
+                    .findByGroup(group).stream()
+                    .filter(tx -> tx.getBank().getUser().getId().equals(user.getId()))
+                    .map(tx -> {
+                        TransactionResponseDto txDto = new TransactionResponseDto();
+                        txDto.setId(tx.getId());
+                        txDto.setDate(tx.getDate().toString());
+                        txDto.setAmount(tx.getAmount());
+                        txDto.setNotes(tx.getNotes());
+                        txDto.setBankId(tx.getBank().getId());
+                        txDto.setBrandId(tx.getBrand().getId());
+                        txDto.setTypeId(tx.getType().getId());
+                        return txDto;
+                    })
+                    .collect(Collectors.toList());
+
+            dto.setTransactions(transactions);
+            return dto;
+        }).collect(Collectors.toList());
+    }
+
+    public String createTransactionGroup(TransactionGroupCreateDto dto) {
 
         // ---------------- GET REPORT ----------------
         // Todo: get the latest report here to add to the transaction group.
