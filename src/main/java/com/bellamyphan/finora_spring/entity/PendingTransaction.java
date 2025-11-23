@@ -11,8 +11,11 @@ import lombok.NoArgsConstructor;
 public class PendingTransaction {
 
     @Id
+    private String transactionId; // Primary key, matches Transaction.id
+
     @OneToOne(fetch = FetchType.EAGER, optional = false)
-    @JoinColumn(name = "transaction_id", nullable = false, foreignKey = @ForeignKey(name = "fk_pending_transactions_transactions"))
+    @MapsId // Maps transactionId from the Transaction entity
+    @JoinColumn(name = "transaction_id", foreignKey = @ForeignKey(name = "fk_pending_transactions_transactions"))
     private Transaction transaction;
 
     // Constructor
