@@ -3,11 +3,11 @@ package com.bellamyphan.finora_spring.controller;
 import com.bellamyphan.finora_spring.constant.RoleEnum;
 import com.bellamyphan.finora_spring.entity.Role;
 import com.bellamyphan.finora_spring.entity.User;
-import com.bellamyphan.finora_spring.repository.UserRepository;
 import com.bellamyphan.finora_spring.service.EmailService;
 import com.bellamyphan.finora_spring.service.JwtService;
 import com.bellamyphan.finora_spring.service.OtpService;
 import com.bellamyphan.finora_spring.service.PasswordService;
+import com.bellamyphan.finora_spring.service.UserService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -27,7 +27,7 @@ import static org.mockito.Mockito.*;
 class AuthControllerTest {
 
     @Mock
-    private UserRepository userRepository;
+    private UserService userService;
 
     @Mock
     private PasswordService passwordService;
@@ -44,7 +44,7 @@ class AuthControllerTest {
     @InjectMocks
     private AuthController authController;
 
-    private static final String USER_ID = "AbC123xYz9";   // 10-char nanoID
+    private static final String USER_ID = "AbC123xYz9";
 
     // ------------------ /login tests ------------------
     @Test
@@ -60,7 +60,7 @@ class AuthControllerTest {
         user.setPassword("hashedPassword");
         user.setRole(role);
 
-        when(userRepository.findByEmail(email.toLowerCase())).thenReturn(Optional.of(user));
+        when(userService.findByEmail(email.toLowerCase())).thenReturn(Optional.of(user));
         when(passwordService.matches(password, "hashedPassword")).thenReturn(true);
         when(jwtService.generateToken(email, USER_ID, RoleEnum.ROLE_USER)).thenReturn("mocked-jwt-token");
 
@@ -78,7 +78,7 @@ class AuthControllerTest {
     void testLoginUserNotFound() {
         String email = "missing@example.com";
 
-        when(userRepository.findByEmail(email.toLowerCase())).thenReturn(Optional.empty());
+        when(userService.findByEmail(email.toLowerCase())).thenReturn(Optional.empty());
 
         ResponseEntity<?> response = authController.login(email, "any");
 
@@ -95,7 +95,7 @@ class AuthControllerTest {
         user.setEmail(email);
         user.setPassword("correctHashed");
 
-        when(userRepository.findByEmail(email.toLowerCase())).thenReturn(Optional.of(user));
+        when(userService.findByEmail(email.toLowerCase())).thenReturn(Optional.of(user));
         when(passwordService.matches("wrongPass", "correctHashed")).thenReturn(false);
 
         ResponseEntity<?> response = authController.login(email, "wrongPass");
@@ -113,7 +113,7 @@ class AuthControllerTest {
         user.setId(USER_ID);
         user.setEmail(email);
 
-        when(userRepository.findByEmail(email.toLowerCase())).thenReturn(Optional.of(user));
+        when(userService.findByEmail(email.toLowerCase())).thenReturn(Optional.of(user));
         when(otpService.generateOtp()).thenReturn("123456");
 
         ResponseEntity<?> response = authController.requestOtp(email);
@@ -131,7 +131,7 @@ class AuthControllerTest {
 
     @Test
     void testRequestOtpUserNotFound() {
-        when(userRepository.findByEmail("missing@example.com")).thenReturn(Optional.empty());
+        when(userService.findByEmail("missing@example.com")).thenReturn(Optional.empty());
 
         ResponseEntity<?> response = authController.requestOtp("missing@example.com");
 
@@ -156,11 +156,10 @@ class AuthControllerTest {
         user.setEmail(email);
         user.setRole(role);
 
-        OtpService.OtpEntry entry =
-                new OtpService.OtpEntry(otp, LocalDateTime.now().plusMinutes(5));
+        OtpService.OtpEntry entry = new OtpService.OtpEntry(otp, LocalDateTime.now().plusMinutes(5));
 
-        when(otpService.getOtp(email)).thenReturn(entry);
-        when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+        when(otpService.getOtp(email.toLowerCase())).thenReturn(entry);
+        when(userService.findByEmail(email.toLowerCase())).thenReturn(Optional.of(user));
         when(jwtService.generateToken(email, USER_ID, RoleEnum.ROLE_USER)).thenReturn("mocked-jwt");
 
         ResponseEntity<?> response = authController.verifyOtp(email, otp);
@@ -172,7 +171,7 @@ class AuthControllerTest {
         assertTrue((Boolean) body.get("success"));
         assertEquals("mocked-jwt", body.get("token"));
 
-        verify(otpService).clearOtp(email);
+        verify(otpService).clearOtp(email.toLowerCase());
     }
 
     @Test
@@ -196,11 +195,10 @@ class AuthControllerTest {
         String email = "missing@example.com";
         String otp = "123456";
 
-        OtpService.OtpEntry entry =
-                new OtpService.OtpEntry(otp, LocalDateTime.now().plusMinutes(5));
+        OtpService.OtpEntry entry = new OtpService.OtpEntry(otp, LocalDateTime.now().plusMinutes(5));
 
-        when(otpService.getOtp(email)).thenReturn(entry);
-        when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
+        when(otpService.getOtp(email.toLowerCase())).thenReturn(entry);
+        when(userService.findByEmail(email.toLowerCase())).thenReturn(Optional.empty());
 
         ResponseEntity<?> response = authController.verifyOtp(email, otp);
 
@@ -211,6 +209,6 @@ class AuthControllerTest {
         assertFalse((Boolean) body.get("success"));
         assertEquals("User not found", body.get("message"));
 
-        verify(otpService).clearOtp(email);
+        verify(otpService).clearOtp(email.toLowerCase());
     }
 }
