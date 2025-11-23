@@ -1,23 +1,18 @@
 package com.bellamyphan.finora_spring.service;
 
-import com.bellamyphan.finora_spring.constant.TransactionTypeEnum;
-import com.bellamyphan.finora_spring.dto.TransactionCreateDto;
-import com.bellamyphan.finora_spring.dto.TransactionGroupCreateDto;
+import com.bellamyphan.finora_spring.dto.TransactionGroupResponseDto;
 import com.bellamyphan.finora_spring.entity.*;
 import com.bellamyphan.finora_spring.repository.*;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.dao.DataIntegrityViolationException;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 
-import static org.mockito.Mockito.*;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class TransactionGroupServiceTest {
@@ -32,116 +27,142 @@ class TransactionGroupServiceTest {
 
     @InjectMocks TransactionGroupService service;
 
-    // ------------------------------------------------------------------------
-    //   BASIC SUCCESS TEST (LEAN)
-    // ------------------------------------------------------------------------
     @Test
-    void createTransactionGroup_success() {
-        // Arrange ---------------------------------------------------------------
-        Brand brand = new Brand(); brand.setId("brand1");
-        TransactionType type = new TransactionType(); type.setType(TransactionTypeEnum.SHOP);
-        Bank bank = new Bank(); bank.setId("bank1");
+    void getPendingTransactionGroupsForUser_filtersCorrectly() {
+        // Arrange
+        User user = new User();
+        user.setId("user1");
 
-        when(brandRepository.findById("brand1")).thenReturn(Optional.of(brand));
-        when(transactionTypeRepository.findByType(TransactionTypeEnum.SHOP)).thenReturn(Optional.of(type));
-        when(bankRepository.findById("bank1")).thenReturn(Optional.of(bank));
+        TransactionGroup group1 = new TransactionGroup();
+        group1.setId("G1");
+        TransactionGroup group2 = new TransactionGroup();
+        group2.setId("G2");
 
-        // nano IDs
-        when(nanoIdService.generate()).thenReturn("G1", "T1");
+        Brand brand = new Brand();
+        brand.setId("brand1");
 
-        // save group
-        TransactionGroup savedGroup = new TransactionGroup();
-        savedGroup.setId("G1");
-        when(transactionGroupRepository.save(any())).thenReturn(savedGroup);
+        TransactionType type = new TransactionType();
+        type.setId("SHOP");
 
-        // save transaction
-        when(transactionRepository.save(any())).thenAnswer(inv -> {
-            Transaction t = inv.getArgument(0);
-            t.setId("T1");
-            return t;
-        });
+        Bank bank1 = new Bank();
+        bank1.setUser(user);
+        Bank bank2 = new Bank();
+        bank2.setUser(user);
 
-        // save pending
-        when(pendingTransactionRepository.save(any(PendingTransaction.class)))
-                .thenAnswer(inv -> inv.getArgument(0));
+        Transaction tx1 = new Transaction();
+        tx1.setId("T1");
+        tx1.setBank(bank1);
+        tx1.setBrand(brand);
+        tx1.setType(type);
+        tx1.setDate(LocalDate.of(2024, 1, 1));
 
-        TransactionCreateDto row = new TransactionCreateDto();
-        row.setAmount(30.0);
-        row.setBankId("bank1");
-        row.setNotes("Lunch");
+        Transaction tx2 = new Transaction();
+        tx2.setId("T2");
+        tx2.setBank(bank2);
+        tx2.setBrand(brand);
+        tx2.setType(type);
+        tx2.setDate(LocalDate.of(2024, 1, 2));
 
-        TransactionGroupCreateDto dto = new TransactionGroupCreateDto();
-        dto.setBrandId("brand1");
-        dto.setTypeId("SHOP");
-        dto.setDate("2024-12-01");
-        dto.setTransactions(List.of(row));
+        when(transactionGroupRepository.findAll()).thenReturn(List.of(group1, group2));
+        when(transactionRepository.findByGroup(group1)).thenReturn(List.of(tx1));
+        when(transactionRepository.findByGroup(group2)).thenReturn(List.of(tx2));
+        when(pendingTransactionRepository.existsByTransactionId("T1")).thenReturn(true);
+        when(pendingTransactionRepository.existsByTransactionId("T2")).thenReturn(false);
 
-        // Act -------------------------------------------------------------------
-        String result = service.createTransactionGroup(dto);
+        // Act
+        List<TransactionGroupResponseDto> result = service.getPendingTransactionGroupsForUser(user);
 
-        // Assert ----------------------------------------------------------------
-        assertEquals("G1", result);
-
-        ArgumentCaptor<Transaction> txCap = ArgumentCaptor.forClass(Transaction.class);
-        verify(transactionRepository).save(txCap.capture());
-        Transaction savedTx = txCap.getValue();
-
-        assertEquals(new BigDecimal("30.0"), savedTx.getAmount());
-        assertEquals(LocalDate.parse("2024-12-01"), savedTx.getDate());
-        assertEquals("Lunch", savedTx.getNotes());
-        assertEquals(bank, savedTx.getBank());
-        assertEquals(brand, savedTx.getBrand());
-        assertEquals(type, savedTx.getType());
-        assertEquals(savedGroup, savedTx.getGroup());
-
-        // verify pending
-        ArgumentCaptor<PendingTransaction> pendingCap = ArgumentCaptor.forClass(PendingTransaction.class);
-        verify(pendingTransactionRepository).save(pendingCap.capture());
-        PendingTransaction savedPending = pendingCap.getValue();
-        assertEquals(savedTx, savedPending.getTransaction());
+        // Assert
+        assertEquals(1, result.size());
+        assertEquals("G1", result.get(0).getId());
+        assertEquals(1, result.get(0).getTransactions().size());
+        assertEquals("T1", result.get(0).getTransactions().get(0).getId());
     }
 
-    // ------------------------------------------------------------------------
-    //   RETRY ON GROUP ID COLLISION
-    // ------------------------------------------------------------------------
     @Test
-    void createTransactionGroup_groupIdRetriesOnCollision() {
-        // Arrange ---------------------------------------------------------------
-        when(brandRepository.findById(any())).thenReturn(Optional.of(new Brand()));
-        when(transactionTypeRepository.findByType(any())).thenReturn(Optional.of(new TransactionType()));
-        when(bankRepository.findById(any())).thenReturn(Optional.of(new Bank()));
+    void getPostedTransactionGroupsForUser_filtersCorrectly() {
+        // Arrange
+        User user = new User();
+        user.setId("user1");
 
-        when(nanoIdService.generate()).thenReturn("BAD", "GOOD");
+        TransactionGroup group = new TransactionGroup();
+        group.setId("G1");
 
-        when(transactionGroupRepository.save(any()))
-                .thenThrow(new DataIntegrityViolationException("dup"))
-                .thenAnswer(i -> {
-                    TransactionGroup g = i.getArgument(0);
-                    g.setId("GOOD");
-                    return g;
-                });
+        Brand brand = new Brand();
+        brand.setId("brand1");
 
-        when(transactionRepository.save(any())).thenReturn(new Transaction());
-        when(pendingTransactionRepository.save(any(PendingTransaction.class)))
-                .thenAnswer(inv -> inv.getArgument(0));
+        TransactionType type = new TransactionType();
+        type.setId("SHOP");
 
-        TransactionCreateDto row = new TransactionCreateDto();
-        row.setBankId("bank1");
+        Bank bank1 = new Bank();
+        bank1.setUser(user);
+        Bank bank2 = new Bank();
+        bank2.setUser(user);
 
-        TransactionGroupCreateDto dto = new TransactionGroupCreateDto();
-        dto.setBrandId("brand1");
-        dto.setTypeId("SHOP");
-        dto.setDate("2024-01-01");
-        dto.setTransactions(List.of(row));
+        Transaction tx1 = new Transaction();
+        tx1.setId("T1");
+        tx1.setBank(bank1);
+        tx1.setBrand(brand);
+        tx1.setType(type);
+        tx1.setDate(LocalDate.of(2024, 1, 1));
 
-        // Act -------------------------------------------------------------------
-        String id = service.createTransactionGroup(dto);
+        Transaction tx2 = new Transaction();
+        tx2.setId("T2");
+        tx2.setBank(bank2);
+        tx2.setBrand(brand);
+        tx2.setType(type);
+        tx2.setDate(LocalDate.of(2024, 1, 2));
 
-        // Assert ----------------------------------------------------------------
-        assertEquals("GOOD", id);
-        verify(nanoIdService, times(3)).generate(); // 1 fail + 2 attempts for tx/pending
+        when(transactionGroupRepository.findAll()).thenReturn(List.of(group));
+        when(transactionRepository.findByGroup(group)).thenReturn(List.of(tx1, tx2));
+        when(pendingTransactionRepository.existsByTransactionId("T1")).thenReturn(true);
+        when(pendingTransactionRepository.existsByTransactionId("T2")).thenReturn(false);
 
-        // verify pending transaction saved
-        verify(pendingTransactionRepository).save(any(PendingTransaction.class));
+        // Act
+        List<TransactionGroupResponseDto> result = service.getPostedTransactionGroupsForUser(user);
+
+        // Assert
+        assertEquals(1, result.size());
+        TransactionGroupResponseDto dto = result.get(0);
+        assertEquals("G1", dto.getId());
+        assertEquals(1, dto.getTransactions().size());
+        assertEquals("T2", dto.getTransactions().get(0).getId());
+    }
+
+
+    @Test
+    void getPendingTransactionGroupsForUser_returnsEmptyIfNoPending() {
+        // Arrange
+        User user = new User(); user.setId("user1");
+        TransactionGroup group = new TransactionGroup(); group.setId("G1");
+        Transaction tx = new Transaction(); tx.setId("T1"); tx.setBank(new Bank() {{ setUser(user); }});
+
+        when(transactionGroupRepository.findAll()).thenReturn(List.of(group));
+        when(transactionRepository.findByGroup(group)).thenReturn(List.of(tx));
+        when(pendingTransactionRepository.existsByTransactionId("T1")).thenReturn(false);
+
+        // Act
+        List<TransactionGroupResponseDto> result = service.getPendingTransactionGroupsForUser(user);
+
+        // Assert
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void getPostedTransactionGroupsForUser_returnsEmptyIfAllPending() {
+        // Arrange
+        User user = new User(); user.setId("user1");
+        TransactionGroup group = new TransactionGroup(); group.setId("G1");
+        Transaction tx = new Transaction(); tx.setId("T1"); tx.setBank(new Bank() {{ setUser(user); }});
+
+        when(transactionGroupRepository.findAll()).thenReturn(List.of(group));
+        when(transactionRepository.findByGroup(group)).thenReturn(List.of(tx));
+        when(pendingTransactionRepository.existsByTransactionId("T1")).thenReturn(true);
+
+        // Act
+        List<TransactionGroupResponseDto> result = service.getPostedTransactionGroupsForUser(user);
+
+        // Assert
+        assertTrue(result.isEmpty());
     }
 }
