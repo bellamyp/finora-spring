@@ -31,7 +31,7 @@ public class Transaction {
     @NotNull(message = "Amount is required")
     private BigDecimal amount;
 
-    @Column(name = "notes", length = 255)
+    @Column(name = "notes")
     private String notes;
 
     @ManyToOne(fetch = FetchType.EAGER, optional = false)
