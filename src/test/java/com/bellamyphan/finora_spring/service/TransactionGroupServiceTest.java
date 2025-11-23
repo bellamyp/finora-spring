@@ -25,6 +25,7 @@ class TransactionGroupServiceTest {
     @Mock NanoIdService nanoIdService;
     @Mock TransactionGroupRepository transactionGroupRepository;
     @Mock TransactionRepository transactionRepository;
+    @Mock PendingTransactionRepository pendingTransactionRepository;
     @Mock BrandRepository brandRepository;
     @Mock TransactionTypeRepository transactionTypeRepository;
     @Mock BankRepository bankRepository;
@@ -60,6 +61,10 @@ class TransactionGroupServiceTest {
             return t;
         });
 
+        // save pending
+        when(pendingTransactionRepository.save(any(PendingTransaction.class)))
+                .thenAnswer(inv -> inv.getArgument(0));
+
         TransactionCreateDto row = new TransactionCreateDto();
         row.setAmount(30.0);
         row.setBankId("bank1");
@@ -88,6 +93,12 @@ class TransactionGroupServiceTest {
         assertEquals(brand, savedTx.getBrand());
         assertEquals(type, savedTx.getType());
         assertEquals(savedGroup, savedTx.getGroup());
+
+        // verify pending
+        ArgumentCaptor<PendingTransaction> pendingCap = ArgumentCaptor.forClass(PendingTransaction.class);
+        verify(pendingTransactionRepository).save(pendingCap.capture());
+        PendingTransaction savedPending = pendingCap.getValue();
+        assertEquals(savedTx, savedPending.getTransaction());
     }
 
     // ------------------------------------------------------------------------
@@ -111,6 +122,8 @@ class TransactionGroupServiceTest {
                 });
 
         when(transactionRepository.save(any())).thenReturn(new Transaction());
+        when(pendingTransactionRepository.save(any(PendingTransaction.class)))
+                .thenAnswer(inv -> inv.getArgument(0));
 
         TransactionCreateDto row = new TransactionCreateDto();
         row.setBankId("bank1");
@@ -126,6 +139,9 @@ class TransactionGroupServiceTest {
 
         // Assert ----------------------------------------------------------------
         assertEquals("GOOD", id);
-        verify(nanoIdService, times(3)).generate();
+        verify(nanoIdService, times(3)).generate(); // 1 fail + 2 attempts for tx/pending
+
+        // verify pending transaction saved
+        verify(pendingTransactionRepository).save(any(PendingTransaction.class));
     }
 }
