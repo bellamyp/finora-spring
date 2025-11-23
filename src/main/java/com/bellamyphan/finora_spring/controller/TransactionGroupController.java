@@ -34,18 +34,12 @@ public class TransactionGroupController {
         User user = userService.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found: " + userId));
 
-        List<TransactionGroupResponseDto> groups;
-
-        switch (status.toLowerCase()) {
-            case "pending":
-                groups = transactionGroupService.getPendingTransactionGroupsForUser(user);
-                break;
-            case "posted":
-                groups = transactionGroupService.getPostedTransactionGroupsForUser(user);
-                break;
-            default:
-                throw new IllegalArgumentException("Invalid status: " + status + ". Must be 'pending' or 'posted'.");
-        }
+        List<TransactionGroupResponseDto> groups = switch (status.toLowerCase()) {
+            case "pending" -> transactionGroupService.getPendingTransactionGroupsForUser(user);
+            case "posted" -> transactionGroupService.getPostedTransactionGroupsForUser(user);
+            default ->
+                    throw new IllegalArgumentException("Invalid status: " + status + ". Must be 'pending' or 'posted'.");
+        };
 
         return ResponseEntity.ok(groups);
     }

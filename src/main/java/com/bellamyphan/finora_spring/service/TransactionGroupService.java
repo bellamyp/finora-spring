@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -50,7 +51,7 @@ public class TransactionGroupService {
                     dto.setTransactions(transactions);
                     return dto;
                 })
-                .filter(dto -> dto != null) // remove empty groups
+                .filter(Objects::nonNull) // remove empty groups
                 .collect(Collectors.toList());
     }
 
@@ -74,7 +75,7 @@ public class TransactionGroupService {
                     dto.setTransactions(transactions);
                     return dto;
                 })
-                .filter(dto -> dto != null)
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
