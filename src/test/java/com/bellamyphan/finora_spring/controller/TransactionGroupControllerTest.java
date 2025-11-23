@@ -2,24 +2,21 @@ package com.bellamyphan.finora_spring.controller;
 
 import com.bellamyphan.finora_spring.dto.TransactionGroupCreateDto;
 import com.bellamyphan.finora_spring.service.TransactionGroupService;
-import com.bellamyphan.finora_spring.service.UserService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class TransactionGroupControllerTest {
-
-    @Mock
-    private UserService userService;
 
     @Mock
     private TransactionGroupService transactionGroupService;
@@ -40,13 +37,13 @@ class TransactionGroupControllerTest {
         ResponseEntity<?> response = controller.createTransactionGroup(dto);
 
         // Assert
-        assertEquals(200, response.getStatusCodeValue());
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
         Map<String, Object> body = (Map<String, Object>) response.getBody();
-        assertNotNull(body);
-        assertTrue((Boolean) body.get("success"));
-        assertEquals(expectedGroupId, body.get("groupId"));
-        assertEquals("Transaction group created successfully", body.get("message"));
+        assertThat(body).isNotNull();
+        assertThat(body.get("success")).isEqualTo(true);
+        assertThat(body.get("groupId")).isEqualTo(expectedGroupId);
+        assertThat(body.get("message")).isEqualTo("Transaction group created successfully");
 
         verify(transactionGroupService, times(1)).createTransactionGroup(dto);
         verifyNoMoreInteractions(transactionGroupService);
