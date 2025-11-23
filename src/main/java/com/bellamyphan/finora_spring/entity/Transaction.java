@@ -31,11 +31,21 @@ public class Transaction {
     @NotNull(message = "Amount is required")
     private BigDecimal amount;
 
-    @Column(name = "notes", length = 255)
+    @Column(name = "notes")
     private String notes;
 
     @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "bank_id", nullable = false, foreignKey = @ForeignKey(name = "fk_transactions_banks"))
     @NotNull(message = "Bank is required")
     private Bank bank;
+
+    @ManyToOne(fetch = FetchType.EAGER, optional = false)
+    @JoinColumn(name = "brand_id", nullable = false, foreignKey = @ForeignKey(name = "fk_transactions_brands"))
+    @NotNull(message = "Brand is required")
+    private Brand brand;
+
+    @ManyToOne(fetch = FetchType.EAGER, optional = false)
+    @JoinColumn(name = "type_id", nullable = false, foreignKey = @ForeignKey(name = "fk_transactions_transaction_types"))
+    @NotNull(message = "Transaction type is required")
+    private TransactionType type;
 }

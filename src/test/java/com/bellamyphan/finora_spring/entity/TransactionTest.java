@@ -1,5 +1,6 @@
 package com.bellamyphan.finora_spring.entity;
 
+import com.bellamyphan.finora_spring.constant.TransactionTypeEnum;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -12,79 +13,73 @@ import static org.junit.jupiter.api.Assertions.*;
 @ExtendWith(MockitoExtension.class)
 class TransactionTest {
 
+    // Helper to create dummy related entities
+    private TransactionGroup createGroup() {
+        TransactionGroup group = new TransactionGroup();
+        group.setId("group123");
+        group.setReport(null); // optional, can provide a Report if needed
+        return group;
+    }
+
+    private Bank createBank() {
+        Bank bank = new Bank();
+        bank.setId("bank123");
+        bank.setName("Test Bank");
+        return bank;
+    }
+
+    private Brand createBrand() {
+        Brand brand = new Brand();
+        brand.setId("brand123");
+        brand.setName("Test Brand");
+        return brand;
+    }
+
+    private TransactionType createType() {
+        TransactionType type = new TransactionType();
+        type.setId("type123");
+        type.setType(TransactionTypeEnum.INCOME);
+        return type;
+    }
+
     @Test
     void testNoArgsConstructorAndSetters() {
         Transaction transaction = new Transaction();
 
-        // Create related entities
-        TransactionGroup group = new TransactionGroup();
-        group.setId("group123");
-        group.setNotes("Test Group");
-
-        Bank bank = new Bank();
-        bank.setId("bank123456");
-        bank.setName("Test Bank");
-
-        // Set fields
-        transaction.setId("txn123456");
-        transaction.setGroup(group);
+        transaction.setId("txn123");
+        transaction.setGroup(createGroup());
+        transaction.setBank(createBank());
+        transaction.setBrand(createBrand());
+        transaction.setType(createType());
         transaction.setDate(LocalDate.of(2025, 11, 21));
         transaction.setAmount(BigDecimal.valueOf(123.45));
         transaction.setNotes("Test notes");
-        transaction.setBank(bank);
 
-        // Assertions
-        assertEquals("txn123456", transaction.getId());
-        assertEquals(group, transaction.getGroup());
+        assertEquals("txn123", transaction.getId());
+        assertEquals("Test Bank", transaction.getBank().getName());
+        assertEquals("Test Brand", transaction.getBrand().getName());
+        assertEquals(TransactionTypeEnum.INCOME, transaction.getType().getType());
         assertEquals(LocalDate.of(2025, 11, 21), transaction.getDate());
         assertEquals(BigDecimal.valueOf(123.45), transaction.getAmount());
         assertEquals("Test notes", transaction.getNotes());
-        assertEquals(bank, transaction.getBank());
-    }
-
-    @Test
-    void testAllArgsConstructor() {
-        TransactionGroup group = new TransactionGroup();
-        group.setId("group999");
-        group.setNotes("Group 999");
-
-        Bank bank = new Bank();
-        bank.setId("bank999999");
-        bank.setName("Bank 999");
-
-        // Use no-arg + setters for simplicity (you could add a constructor if desired)
-        Transaction transaction = new Transaction();
-        transaction.setId("txn999999");
-        transaction.setGroup(group);
-        transaction.setDate(LocalDate.of(2024, 5, 15));
-        transaction.setAmount(BigDecimal.valueOf(9999.99));
-        transaction.setNotes("Some transaction");
-        transaction.setBank(bank);
-
-        // Assertions
-        assertEquals("txn999999", transaction.getId());
-        assertEquals(group, transaction.getGroup());
-        assertEquals(LocalDate.of(2024, 5, 15), transaction.getDate());
-        assertEquals(BigDecimal.valueOf(9999.99), transaction.getAmount());
-        assertEquals("Some transaction", transaction.getNotes());
-        assertEquals(bank, transaction.getBank());
     }
 
     @Test
     void testNotNullFields() {
         Transaction transaction = new Transaction();
 
-        TransactionGroup group = new TransactionGroup();
-        Bank bank = new Bank();
-
-        transaction.setGroup(group);
+        transaction.setGroup(createGroup());
+        transaction.setBank(createBank());
+        transaction.setBrand(createBrand());
+        transaction.setType(createType());
         transaction.setDate(LocalDate.now());
         transaction.setAmount(BigDecimal.ONE);
-        transaction.setBank(bank);
 
         assertNotNull(transaction.getGroup());
+        assertNotNull(transaction.getBank());
+        assertNotNull(transaction.getBrand());
+        assertNotNull(transaction.getType());
         assertNotNull(transaction.getDate());
         assertNotNull(transaction.getAmount());
-        assertNotNull(transaction.getBank());
     }
 }

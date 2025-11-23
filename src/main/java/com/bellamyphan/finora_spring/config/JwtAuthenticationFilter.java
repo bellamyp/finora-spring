@@ -1,7 +1,7 @@
 package com.bellamyphan.finora_spring.config;
 
 import com.bellamyphan.finora_spring.service.JwtService;
-import com.bellamyphan.finora_spring.repository.UserRepository;
+import com.bellamyphan.finora_spring.service.UserService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -25,7 +25,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private static final Logger logger = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
 
     private final JwtService jwtService;
-    private final UserRepository userRepository;
+    private final UserService userService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -44,7 +44,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String userId = jwtService.validateTokenAndGetUserId(token);
 
             if (userId != null) {
-                var userOpt = userRepository.findById(userId);
+                var userOpt = userService.findById(userId);
 
                 if (userOpt.isPresent()) {
                     var user = userOpt.get();

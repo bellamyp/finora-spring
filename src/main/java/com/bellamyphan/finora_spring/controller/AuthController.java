@@ -1,11 +1,7 @@
 package com.bellamyphan.finora_spring.controller;
 
 import com.bellamyphan.finora_spring.entity.User;
-import com.bellamyphan.finora_spring.repository.UserRepository;
-import com.bellamyphan.finora_spring.service.EmailService;
-import com.bellamyphan.finora_spring.service.JwtService;
-import com.bellamyphan.finora_spring.service.OtpService;
-import com.bellamyphan.finora_spring.service.PasswordService;
+import com.bellamyphan.finora_spring.service.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,7 +19,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class AuthController {
 
-    private final UserRepository userRepository;
+    private final UserService userService;
     private final PasswordService passwordService;
     private final OtpService otpService;
     private final JwtService jwtService;
@@ -32,7 +28,7 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestParam String email,
                                    @RequestParam String password) {
-        Optional<User> userOpt = userRepository.findByEmail(email.toLowerCase());
+        Optional<User> userOpt = userService.findByEmail(email.toLowerCase());
         if (userOpt.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body("Invalid email or password");
@@ -63,7 +59,7 @@ public class AuthController {
     @PostMapping("/login/otp/request")
     public ResponseEntity<?> requestOtp(@RequestParam String email) {
 
-        Optional<User> userOpt = userRepository.findByEmail(email.toLowerCase());
+        Optional<User> userOpt = userService.findByEmail(email.toLowerCase());
         if (userOpt.isEmpty()) {
             return ResponseEntity.ok(Map.of(
                     "success", false,
@@ -101,7 +97,7 @@ public class AuthController {
         otpService.clearOtp(lowerCaseEmail); // cleanup after successful verification
 
         // Safely get user or return not found
-        Optional<User> userOpt = userRepository.findByEmail(lowerCaseEmail);
+        Optional<User> userOpt = userService.findByEmail(lowerCaseEmail);
         if (userOpt.isEmpty()) {
             return ResponseEntity.status(HttpStatus.OK).body(Map.of(
                     "success", false,

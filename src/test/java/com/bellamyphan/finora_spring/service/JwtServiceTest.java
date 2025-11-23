@@ -2,16 +2,15 @@ package com.bellamyphan.finora_spring.service;
 
 import com.bellamyphan.finora_spring.constant.RoleEnum;
 import com.bellamyphan.finora_spring.entity.User;
-import com.bellamyphan.finora_spring.repository.UserRepository;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.security.Keys;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
 
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
@@ -25,7 +24,7 @@ import static org.mockito.Mockito.*;
 class JwtServiceTest {
 
     @Mock
-    private UserRepository userRepository;
+    private UserService userService;
 
     @InjectMocks
     private JwtService jwtService;
@@ -37,10 +36,9 @@ class JwtServiceTest {
 
     @BeforeEach
     void setup() throws Exception {
-        // Inject secret manually
+        // Inject secret manually (>=32 chars for HS256)
         var secretField = JwtService.class.getDeclaredField("secret");
         secretField.setAccessible(true);
-        // >=32 chars for HS256
         String secret = "mysecretmysecretmysecretmysecret";
         secretField.set(jwtService, secret);
 
@@ -65,12 +63,12 @@ class JwtServiceTest {
     void testValidateTokenSuccess() {
         String token = jwtService.generateToken(email, userId, RoleEnum.ROLE_USER);
 
-        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(userService.findById(userId)).thenReturn(Optional.of(user));
 
         String result = jwtService.validateTokenAndGetUserId(token);
 
         assertEquals(userId, result);
-        verify(userRepository, times(1)).findById(userId);
+        verify(userService, times(1)).findById(userId);
     }
 
     @Test
@@ -94,12 +92,12 @@ class JwtServiceTest {
     void testValidateTokenUserNotFound() {
         String token = jwtService.generateToken(email, userId, RoleEnum.ROLE_USER);
 
-        when(userRepository.findById(userId)).thenReturn(Optional.empty());
+        when(userService.findById(userId)).thenReturn(Optional.empty());
 
         String result = jwtService.validateTokenAndGetUserId(token);
 
         assertNull(result);
-        verify(userRepository, times(1)).findById(userId);
+        verify(userService, times(1)).findById(userId);
     }
 
     @Test
@@ -113,8 +111,7 @@ class JwtServiceTest {
                 .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
 
-        // No need to stub userRepository, method will return null before it uses it
-
+        // No need to stub userService; method returns null on expiration
         String result = jwtService.validateTokenAndGetUserId(expiredToken);
 
         assertNull(result);

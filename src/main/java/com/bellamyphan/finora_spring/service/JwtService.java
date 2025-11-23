@@ -2,7 +2,6 @@ package com.bellamyphan.finora_spring.service;
 
 import com.bellamyphan.finora_spring.constant.RoleEnum;
 import com.bellamyphan.finora_spring.entity.User;
-import com.bellamyphan.finora_spring.repository.UserRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -21,7 +20,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class JwtService {
 
-    private final UserRepository userRepository;
+    private final UserService userService;
 
     // 1 hour expiration token
     private static final long EXPIRATION_MS = 1000 * 60 * 60;
@@ -59,7 +58,7 @@ public class JwtService {
             String userId = claims.get("userId", String.class);
 
             // Check if user exists in DB
-            Optional<User> userOpt = userRepository.findById(userId);
+            Optional<User> userOpt = userService.findById(userId);
             if (userOpt.isEmpty()) {
                 return null; // invalid token: user not found
             }

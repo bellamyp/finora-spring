@@ -1,9 +1,6 @@
 package com.bellamyphan.finora_spring.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -18,6 +15,10 @@ public class Brand {
     @Column(name = "id", nullable = false, length = 10)
     private String id; // NanoID 10-char, generated in Java
 
+    @ManyToOne(fetch = FetchType.EAGER, optional = false)
+    @JoinColumn(name = "user_id", nullable = false, foreignKey = @ForeignKey(name = "fk_brands_users"))
+    private User user;
+
     @Column(name = "name", nullable = false, length = 50)
     @NotBlank(message = "Brand name is required")
     private String name;
@@ -26,7 +27,8 @@ public class Brand {
     private String location;
 
     // Constructor without ID (Java can generate NanoID separately)
-    public Brand(String name, String location) {
+    public Brand(User user, String name, String location) {
+        this.user = user;
         this.name = name;
         this.location = location;
     }

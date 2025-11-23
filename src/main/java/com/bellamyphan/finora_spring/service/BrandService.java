@@ -3,6 +3,7 @@ package com.bellamyphan.finora_spring.service;
 import com.bellamyphan.finora_spring.dto.BrandCreateDto;
 import com.bellamyphan.finora_spring.dto.BrandDto;
 import com.bellamyphan.finora_spring.entity.Brand;
+import com.bellamyphan.finora_spring.entity.User;
 import com.bellamyphan.finora_spring.repository.BrandRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -24,12 +25,13 @@ public class BrandService {
                 .toList();
     }
 
-    public BrandDto createBrand(BrandCreateDto request) {
+    public BrandDto createBrand(BrandCreateDto request, User user) {
 
         // Prevent duplicate brand with same name AND same location
-        if (brandRepository.existsByNameIgnoreCaseAndLocationIgnoreCase(
+        if (brandRepository.existsByNameIgnoreCaseAndLocationIgnoreCaseAndUser(
                 request.getName(),
-                request.getLocation()
+                request.getLocation(),
+                user
         )) {
             throw new IllegalArgumentException(
                     "Brand '" + request.getName() + "' at location '" +
@@ -37,7 +39,7 @@ public class BrandService {
             );
         }
 
-        Brand brand = new Brand(request.getName(), request.getLocation());
+        Brand brand = new Brand(user, request.getName(), request.getLocation());
 
         for (int i = 0; i < 10; i++) {
             try {

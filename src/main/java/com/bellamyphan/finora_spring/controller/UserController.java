@@ -3,7 +3,6 @@ package com.bellamyphan.finora_spring.controller;
 import com.bellamyphan.finora_spring.dto.UserDto;
 import com.bellamyphan.finora_spring.dto.UserRequestDto;
 import com.bellamyphan.finora_spring.entity.User;
-import com.bellamyphan.finora_spring.repository.UserRepository;
 import com.bellamyphan.finora_spring.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -18,13 +17,12 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class UserController {
 
-    private final UserRepository userRepository;
     private final UserService userService;
 
     // GET /api/users - fetch all users
     @GetMapping
     public List<UserDto> getAllUsers() {
-        return userRepository.findAll()
+        return userService.findAll()
                 .stream()
                 .map(user -> new UserDto(
                         user.getName(),
@@ -42,7 +40,7 @@ public class UserController {
         String email = (userDto.getEmail() != null) ? userDto.getEmail().toLowerCase().trim() : null;
 
         // Check if email already exists
-        if (email != null && userRepository.findByEmail(email).isPresent()) {
+        if (email != null && userService.findByEmail(email).isPresent()) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
                     .body("Email already exists");
         }
