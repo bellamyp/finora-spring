@@ -3,6 +3,8 @@ package com.bellamyphan.finora_spring.service;
 import com.bellamyphan.finora_spring.constant.TransactionTypeEnum;
 import com.bellamyphan.finora_spring.dto.TransactionCreateDto;
 import com.bellamyphan.finora_spring.dto.TransactionGroupCreateDto;
+import com.bellamyphan.finora_spring.dto.TransactionGroupResponseDto;
+import com.bellamyphan.finora_spring.dto.TransactionResponseDto;
 import com.bellamyphan.finora_spring.entity.*;
 import com.bellamyphan.finora_spring.repository.*;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +13,9 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -24,7 +29,57 @@ public class TransactionGroupService {
     private final TransactionTypeRepository transactionTypeRepository;
     private final BankRepository bankRepository;
 
-    public String  createTransactionGroup(TransactionGroupCreateDto dto) {
+    // -------------------------------
+    // Get pending transactions for user
+    // -------------------------------
+    public List<TransactionGroupResponseDto> getPendingTransactionGroupsForUser(User user) {
+        return transactionGroupRepository.findAll().stream()
+                .map(group -> {
+                    List<TransactionResponseDto> transactions = transactionRepository
+                            .findByGroup(group).stream()
+                            .filter(tx -> tx.getBank().getUser().getId().equals(user.getId()))
+                            .filter(tx -> pendingTransactionRepository.existsByTransactionId(tx.getId()))
+                            .map(this::toDto)
+                            .collect(Collectors.toList());
+
+                    if (transactions.isEmpty()) {
+                        return null; // mark empty groups for filtering
+                    }
+
+                    TransactionGroupResponseDto dto = new TransactionGroupResponseDto();
+                    dto.setId(group.getId());
+                    dto.setTransactions(transactions);
+                    return dto;
+                })
+                .filter(Objects::nonNull) // remove empty groups
+                .collect(Collectors.toList());
+    }
+
+    // -------------------------------
+    // Get posted transactions for user
+    // -------------------------------
+    public List<TransactionGroupResponseDto> getPostedTransactionGroupsForUser(User user) {
+        return transactionGroupRepository.findAll().stream()
+                .map(group -> {
+                    List<TransactionResponseDto> transactions = transactionRepository
+                            .findByGroup(group).stream()
+                            .filter(tx -> tx.getBank().getUser().getId().equals(user.getId()))
+                            .filter(tx -> !pendingTransactionRepository.existsByTransactionId(tx.getId()))
+                            .map(this::toDto)
+                            .collect(Collectors.toList());
+
+                    if (transactions.isEmpty()) return null;
+
+                    TransactionGroupResponseDto dto = new TransactionGroupResponseDto();
+                    dto.setId(group.getId());
+                    dto.setTransactions(transactions);
+                    return dto;
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+    }
+
+    public String createTransactionGroup(TransactionGroupCreateDto dto) {
 
         // ---------------- GET REPORT ----------------
         // Todo: get the latest report here to add to the transaction group.
@@ -68,6 +123,18 @@ public class TransactionGroupService {
     // ============================================================
     //   PRIVATE HELPERS
     // ============================================================
+
+    private TransactionResponseDto toDto(Transaction tx) {
+        TransactionResponseDto txDto = new TransactionResponseDto();
+        txDto.setId(tx.getId());
+        txDto.setDate(tx.getDate().toString());
+        txDto.setAmount(tx.getAmount());
+        txDto.setNotes(tx.getNotes());
+        txDto.setBankId(tx.getBank().getId());
+        txDto.setBrandId(tx.getBrand().getId());
+        txDto.setTypeId(tx.getType().getId());
+        return txDto;
+    }
 
     private TransactionGroup saveGroupWithRetry(TransactionGroup group) {
         for (int i = 0; i < 10; i++) {
