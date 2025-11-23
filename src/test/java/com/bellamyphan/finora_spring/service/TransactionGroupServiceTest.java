@@ -17,13 +17,9 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class TransactionGroupServiceTest {
 
-    @Mock NanoIdService nanoIdService;
     @Mock TransactionGroupRepository transactionGroupRepository;
     @Mock TransactionRepository transactionRepository;
     @Mock PendingTransactionRepository pendingTransactionRepository;
-    @Mock BrandRepository brandRepository;
-    @Mock TransactionTypeRepository transactionTypeRepository;
-    @Mock BankRepository bankRepository;
 
     @InjectMocks TransactionGroupService service;
 
