@@ -1,12 +1,10 @@
 package com.bellamyphan.finora_spring.controller;
 
 import com.bellamyphan.finora_spring.dto.TransactionGroupCreateDto;
-import com.bellamyphan.finora_spring.entity.User;
 import com.bellamyphan.finora_spring.service.TransactionGroupService;
 import com.bellamyphan.finora_spring.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
