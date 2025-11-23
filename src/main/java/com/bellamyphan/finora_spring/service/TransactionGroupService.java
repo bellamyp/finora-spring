@@ -132,7 +132,7 @@ public class TransactionGroupService {
         txDto.setNotes(tx.getNotes());
         txDto.setBankId(tx.getBank().getId());
         txDto.setBrandId(tx.getBrand().getId());
-        txDto.setTypeId(tx.getType().getId());
+        txDto.setTypeId(tx.getType().getType().name());
         return txDto;
     }
 
