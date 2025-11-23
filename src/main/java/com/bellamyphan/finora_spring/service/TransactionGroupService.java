@@ -19,6 +19,7 @@ public class TransactionGroupService {
     private final NanoIdService nanoIdService;
     private final TransactionGroupRepository transactionGroupRepository;
     private final TransactionRepository transactionRepository;
+    private final PendingTransactionRepository pendingTransactionRepository;
     private final BrandRepository brandRepository;
     private final TransactionTypeRepository transactionTypeRepository;
     private final BankRepository bankRepository;
@@ -56,7 +57,9 @@ public class TransactionGroupService {
             tx.setBrand(brand);
             tx.setType(type);
 
-            saveTransactionWithRetry(tx);
+            // Save transaction and also mark as pending
+            Transaction savedTx = saveTransactionWithRetry(tx);
+            savePendingTransaction(savedTx);
         }
 
         return savedGroup.getId();
@@ -88,5 +91,10 @@ public class TransactionGroupService {
             }
         }
         throw new RuntimeException("Failed to generate unique Transaction ID after 10 attempts");
+    }
+
+    private PendingTransaction savePendingTransaction(Transaction tx) {
+        PendingTransaction pending = new PendingTransaction(tx);
+        return pendingTransactionRepository.save(pending);
     }
 }
