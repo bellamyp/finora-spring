@@ -83,6 +83,7 @@ public class TransactionService {
         return results.stream().map(tx -> {
             TransactionResponseDto dto = new TransactionResponseDto();
             dto.setId(tx.getId());
+            dto.setGroupId(tx.getGroup().getId());
             dto.setDate(tx.getDate().toString());
             dto.setAmount(tx.getAmount());
             dto.setNotes(tx.getNotes());
