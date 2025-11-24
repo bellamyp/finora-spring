@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -72,12 +73,40 @@ public class TransactionGroupService {
 
                     if (transactions.isEmpty()) return null;
 
+                    // Sort transactions inside group (newest first, null last)
+                    transactions.sort(
+                            Comparator.comparing(TransactionResponseDto::getDate,
+                                            Comparator.nullsLast(Comparator.naturalOrder()))
+                                    .reversed()
+                    );
+
                     TransactionGroupResponseDto dto = new TransactionGroupResponseDto();
                     dto.setId(group.getId());
                     dto.setTransactions(transactions);
                     return dto;
                 })
                 .filter(Objects::nonNull)
+                // Now sort groups by each group's latest transaction date
+                .sorted((g1, g2) -> {
+                    // extract latest date from each group
+                    var d1 = g1.getTransactions().stream()
+                            .map(TransactionResponseDto::getDate)
+                            .filter(Objects::nonNull)
+                            .max(Comparator.naturalOrder())
+                            .orElse(null);
+
+                    var d2 = g2.getTransactions().stream()
+                            .map(TransactionResponseDto::getDate)
+                            .filter(Objects::nonNull)
+                            .max(Comparator.naturalOrder())
+                            .orElse(null);
+
+                    // Manual null-safe compare: newest first, nulls last
+                    if (d1 == null && d2 == null) return 0;
+                    if (d1 == null) return 1;   // d2 is "newer" (d1 goes after)
+                    if (d2 == null) return -1;  // d1 is "newer"
+                    return d2.compareTo(d1);    // reverse order: newest first
+                })
                 .collect(Collectors.toList());
     }
 
