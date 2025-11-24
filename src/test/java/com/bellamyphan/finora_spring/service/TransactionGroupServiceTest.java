@@ -1,6 +1,8 @@
 package com.bellamyphan.finora_spring.service;
 
+import com.bellamyphan.finora_spring.constant.TransactionTypeEnum;
 import com.bellamyphan.finora_spring.dto.TransactionGroupResponseDto;
+import com.bellamyphan.finora_spring.dto.TransactionResponseDto;
 import com.bellamyphan.finora_spring.entity.*;
 import com.bellamyphan.finora_spring.repository.*;
 import org.junit.jupiter.api.Test;
@@ -20,44 +22,34 @@ class TransactionGroupServiceTest {
     @Mock TransactionGroupRepository transactionGroupRepository;
     @Mock TransactionRepository transactionRepository;
     @Mock PendingTransactionRepository pendingTransactionRepository;
+    @Mock BrandRepository brandRepository;
+    @Mock TransactionTypeRepository transactionTypeRepository;
+    @Mock BankRepository bankRepository;
+    @Mock NanoIdService nanoIdService;
 
     @InjectMocks TransactionGroupService service;
 
     @Test
     void getPendingTransactionGroupsForUser_filtersCorrectly() {
         // Arrange
-        User user = new User();
-        user.setId("user1");
+        User user = new User(); user.setId("user1");
 
-        TransactionGroup group1 = new TransactionGroup();
-        group1.setId("G1");
-        TransactionGroup group2 = new TransactionGroup();
-        group2.setId("G2");
+        TransactionGroup group1 = new TransactionGroup(); group1.setId("G1");
+        TransactionGroup group2 = new TransactionGroup(); group2.setId("G2");
 
-        Brand brand = new Brand();
-        brand.setId("brand1");
+        Brand brand = new Brand(); brand.setId("brand1");
+        TransactionType type = new TransactionType(); type.setType(TransactionTypeEnum.fromName("SHOP"));
 
-        TransactionType type = new TransactionType();
-        type.setId("SHOP");
-
-        Bank bank1 = new Bank();
-        bank1.setUser(user);
-        Bank bank2 = new Bank();
-        bank2.setUser(user);
+        Bank bank1 = new Bank(); bank1.setUser(user); bank1.setId("bank1");
+        Bank bank2 = new Bank(); bank2.setUser(user); bank2.setId("bank2");
 
         Transaction tx1 = new Transaction();
-        tx1.setId("T1");
-        tx1.setBank(bank1);
-        tx1.setBrand(brand);
-        tx1.setType(type);
-        tx1.setDate(LocalDate.of(2024, 1, 1));
+        tx1.setId("T1"); tx1.setBank(bank1); tx1.setBrand(brand); tx1.setType(type);
+        tx1.setDate(LocalDate.of(2024,1,1));
 
         Transaction tx2 = new Transaction();
-        tx2.setId("T2");
-        tx2.setBank(bank2);
-        tx2.setBrand(brand);
-        tx2.setType(type);
-        tx2.setDate(LocalDate.of(2024, 1, 2));
+        tx2.setId("T2"); tx2.setBank(bank2); tx2.setBrand(brand); tx2.setType(type);
+        tx2.setDate(LocalDate.of(2024,1,2));
 
         when(transactionGroupRepository.findAll()).thenReturn(List.of(group1, group2));
         when(transactionRepository.findByGroup(group1)).thenReturn(List.of(tx1));
@@ -70,44 +62,36 @@ class TransactionGroupServiceTest {
 
         // Assert
         assertEquals(1, result.size());
-        assertEquals("G1", result.get(0).getId());
-        assertEquals(1, result.get(0).getTransactions().size());
-        assertEquals("T1", result.get(0).getTransactions().get(0).getId());
+        TransactionGroupResponseDto dto = result.get(0);
+        assertEquals("G1", dto.getId());
+        assertEquals(1, dto.getTransactions().size());
+        TransactionResponseDto txDto = dto.getTransactions().get(0);
+        assertEquals("T1", txDto.getId());
+        assertEquals("bank1", txDto.getBankId());
+        assertEquals("brand1", txDto.getBrandId());
+        assertEquals("SHOP", txDto.getTypeId());
     }
 
     @Test
     void getPostedTransactionGroupsForUser_filtersCorrectly() {
         // Arrange
-        User user = new User();
-        user.setId("user1");
+        User user = new User(); user.setId("user1");
 
-        TransactionGroup group = new TransactionGroup();
-        group.setId("G1");
+        TransactionGroup group = new TransactionGroup(); group.setId("G1");
 
-        Brand brand = new Brand();
-        brand.setId("brand1");
+        Brand brand = new Brand(); brand.setId("brand1");
+        TransactionType type = new TransactionType(); type.setType(TransactionTypeEnum.fromName("SHOP"));
 
-        TransactionType type = new TransactionType();
-        type.setId("SHOP");
-
-        Bank bank1 = new Bank();
-        bank1.setUser(user);
-        Bank bank2 = new Bank();
-        bank2.setUser(user);
+        Bank bank1 = new Bank(); bank1.setUser(user); bank1.setId("bank1");
+        Bank bank2 = new Bank(); bank2.setUser(user); bank2.setId("bank2");
 
         Transaction tx1 = new Transaction();
-        tx1.setId("T1");
-        tx1.setBank(bank1);
-        tx1.setBrand(brand);
-        tx1.setType(type);
-        tx1.setDate(LocalDate.of(2024, 1, 1));
+        tx1.setId("T1"); tx1.setBank(bank1); tx1.setBrand(brand); tx1.setType(type);
+        tx1.setDate(LocalDate.of(2024,1,1));
 
         Transaction tx2 = new Transaction();
-        tx2.setId("T2");
-        tx2.setBank(bank2);
-        tx2.setBrand(brand);
-        tx2.setType(type);
-        tx2.setDate(LocalDate.of(2024, 1, 2));
+        tx2.setId("T2"); tx2.setBank(bank2); tx2.setBrand(brand); tx2.setType(type);
+        tx2.setDate(LocalDate.of(2024,1,2));
 
         when(transactionGroupRepository.findAll()).thenReturn(List.of(group));
         when(transactionRepository.findByGroup(group)).thenReturn(List.of(tx1, tx2));
@@ -122,9 +106,12 @@ class TransactionGroupServiceTest {
         TransactionGroupResponseDto dto = result.get(0);
         assertEquals("G1", dto.getId());
         assertEquals(1, dto.getTransactions().size());
-        assertEquals("T2", dto.getTransactions().get(0).getId());
+        TransactionResponseDto txDto = dto.getTransactions().get(0);
+        assertEquals("T2", txDto.getId());
+        assertEquals("bank2", txDto.getBankId());
+        assertEquals("brand1", txDto.getBrandId());
+        assertEquals("SHOP", txDto.getTypeId());
     }
-
 
     @Test
     void getPendingTransactionGroupsForUser_returnsEmptyIfNoPending() {
