@@ -5,6 +5,7 @@ import com.bellamyphan.finora_spring.dto.TransactionGroupResponseDto;
 import com.bellamyphan.finora_spring.entity.User;
 import com.bellamyphan.finora_spring.service.TransactionGroupService;
 import com.bellamyphan.finora_spring.service.UserService;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -151,6 +152,7 @@ class TransactionGroupControllerTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         Map<String, Object> body = (Map<String, Object>) response.getBody();
+        Assertions.assertNotNull(body);
         assertThat(body.get("success")).isEqualTo(true);
         assertThat(body.get("message")).isEqualTo("Transaction group updated successfully");
 
@@ -166,6 +168,7 @@ class TransactionGroupControllerTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         Map<String, Object> body = (Map<String, Object>) response.getBody();
+        Assertions.assertNotNull(body);
         assertThat(body.get("success")).isEqualTo(false);
         assertThat(body.get("message")).isEqualTo("Group ID must be provided for update");
 
@@ -184,6 +187,7 @@ class TransactionGroupControllerTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
         Map<String, Object> body = (Map<String, Object>) response.getBody();
+        Assertions.assertNotNull(body);
         assertThat(body.get("success")).isEqualTo(false);
         assertThat(((String) body.get("message"))).contains("Failed to update transaction group: DB failure");
 
