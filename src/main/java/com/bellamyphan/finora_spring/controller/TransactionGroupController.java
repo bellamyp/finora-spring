@@ -44,6 +44,25 @@ public class TransactionGroupController {
         return ResponseEntity.ok(groups);
     }
 
+    /**
+     * Get a specific transaction group by ID for the current user
+     */
+    @GetMapping("/{groupId}")
+    public ResponseEntity<TransactionGroupResponseDto> getGroupById(
+            @PathVariable("groupId") String groupId
+    ) {
+        // Get current user from JWT
+        String userId = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userService.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+
+        // Fetch the group for this user
+        TransactionGroupResponseDto group = transactionGroupService.getTransactionGroupByIdForUser(groupId, user)
+                .orElseThrow(() -> new RuntimeException("Transaction group not found: " + groupId));
+
+        return ResponseEntity.ok(group);
+    }
+
     @PostMapping
     public ResponseEntity<?> createTransactionGroup(@RequestBody TransactionGroupCreateDto dto) {
         String groupId = transactionGroupService.createTransactionGroup(dto);

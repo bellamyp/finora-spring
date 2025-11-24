@@ -15,6 +15,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -77,6 +78,29 @@ public class TransactionGroupService {
                 })
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
+    }
+
+    // -------------------------------
+    // Get specific transactions for user
+    // -------------------------------
+    public Optional<TransactionGroupResponseDto> getTransactionGroupByIdForUser(String groupId, User user) {
+        return transactionGroupRepository.findById(groupId)
+                .map(group -> {
+                    // Filter transactions that belong to this user (via bank)
+                    List<TransactionResponseDto> transactions = transactionRepository.findByGroup(group).stream()
+                            .filter(tx -> tx.getBank().getUser().getId().equals(user.getId()))
+                            .map(this::toDto)
+                            .collect(Collectors.toList());
+
+                    if (transactions.isEmpty()) {
+                        return null; // no transactions for this user
+                    }
+
+                    TransactionGroupResponseDto dto = new TransactionGroupResponseDto();
+                    dto.setId(group.getId());
+                    dto.setTransactions(transactions);
+                    return dto;
+                });
     }
 
     public String createTransactionGroup(TransactionGroupCreateDto dto) {
