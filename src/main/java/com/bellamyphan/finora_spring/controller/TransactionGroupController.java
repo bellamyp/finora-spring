@@ -73,4 +73,38 @@ public class TransactionGroupController {
                 "message", "Transaction group created successfully"
         ));
     }
+
+    @PutMapping
+    public ResponseEntity<?> updateTransactionGroup(@RequestBody TransactionGroupResponseDto dto) {
+        // Validate that the DTO contains a group ID
+        if (dto.getId() == null || dto.getId().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", "Group ID must be provided for update"
+            ));
+        }
+
+        // Get current user from JWT
+        String userId = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userService.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+
+        try {
+            transactionGroupService.updateTransactionGroup(dto, user);
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "Transaction group updated successfully"
+            ));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", e.getMessage()
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of(
+                    "success", false,
+                    "message", "Failed to update transaction group: " + e.getMessage()
+            ));
+        }
+    }
 }

@@ -8,4 +8,6 @@ import org.springframework.stereotype.Repository;
 public interface PendingTransactionRepository extends JpaRepository<PendingTransaction, String> {
 
     boolean existsByTransactionId(String transactionId);
+
+    void deleteByTransactionId(String transactionId);
 }

@@ -10,6 +10,7 @@ import com.bellamyphan.finora_spring.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -103,6 +104,7 @@ public class TransactionGroupService {
                 });
     }
 
+    @Transactional
     public String createTransactionGroup(TransactionGroupCreateDto dto) {
 
         // ---------------- GET REPORT ----------------
@@ -144,6 +146,27 @@ public class TransactionGroupService {
         return savedGroup.getId();
     }
 
+    @Transactional
+    public void updateTransactionGroup(TransactionGroupResponseDto dto, User user) {
+        // 1️⃣ Validate input and fetch group
+        TransactionGroup group = fetchTransactionGroup(dto.getId());
+
+        // 2️⃣ Fetch current transactions for this user
+        List<Transaction> existingTransactions = getUserTransactionsForGroup(group, user);
+
+        // 3️⃣ Handle case: DTO has no transactions → delete all
+        if (dto.getTransactions() == null || dto.getTransactions().isEmpty()) {
+            deleteAllTransactionsAndGroup(existingTransactions, group);
+            return;
+        }
+
+        // 4️⃣ Handle updates and additions
+        handleUpdatesAndAdditions(dto.getTransactions(), existingTransactions, group);
+
+        // 5️⃣ Delete any transactions removed in DTO
+        deleteRemovedTransactions(existingTransactions);
+    }
+
     // ============================================================
     //   PRIVATE HELPERS
     // ============================================================
@@ -157,6 +180,8 @@ public class TransactionGroupService {
         txDto.setBankId(tx.getBank().getId());
         txDto.setBrandId(tx.getBrand().getId());
         txDto.setTypeId(tx.getType().getType().name());
+        // posted = true if transaction is not pending
+        txDto.setPosted(!pendingTransactionRepository.existsByTransactionId(tx.getId()));
         return txDto;
     }
 
@@ -187,5 +212,83 @@ public class TransactionGroupService {
     private PendingTransaction savePendingTransaction(Transaction tx) {
         PendingTransaction pending = new PendingTransaction(tx);
         return pendingTransactionRepository.save(pending);
+    }
+
+    private TransactionGroup fetchTransactionGroup(String groupId) {
+        if (groupId == null || groupId.isEmpty()) {
+            throw new IllegalArgumentException("Transaction group ID is required");
+        }
+        return transactionGroupRepository.findById(groupId)
+                .orElseThrow(() -> new RuntimeException("Transaction group not found: " + groupId));
+    }
+
+    private List<Transaction> getUserTransactionsForGroup(TransactionGroup group, User user) {
+        return transactionRepository.findByGroup(group).stream()
+                .filter(tx -> tx.getBank().getUser().getId().equals(user.getId()))
+                .collect(Collectors.toList());
+    }
+
+    private void deleteAllTransactionsAndGroup(List<Transaction> transactions, TransactionGroup group) {
+        for (Transaction tx : transactions) {
+            pendingTransactionRepository.deleteByTransactionId(tx.getId());
+            transactionRepository.delete(tx);
+        }
+        transactionGroupRepository.deleteById(group.getId());
+    }
+
+    private void handleUpdatesAndAdditions(List<TransactionResponseDto> txDtos, List<Transaction> existingTransactions, TransactionGroup group) {
+        for (TransactionResponseDto txDto : txDtos) {
+            Transaction tx;
+            Optional<Transaction> existingTxOpt = existingTransactions.stream()
+                    .filter(t -> t.getId().equals(txDto.getId()))
+                    .findFirst();
+
+            if (existingTxOpt.isPresent()) {
+                tx = existingTxOpt.get();
+                existingTransactions.remove(tx);
+            } else {
+                tx = new Transaction();
+                tx.setGroup(group);
+            }
+
+            resolveLookupsAndSetFields(tx, txDto);
+
+            // Save safely
+            Transaction savedTx = existingTxOpt.isPresent() ? transactionRepository.save(tx)
+                    : saveTransactionWithRetry(tx);
+
+            updatePendingStatus(savedTx, txDto.isPosted());
+        }
+    }
+
+    private void resolveLookupsAndSetFields(Transaction tx, TransactionResponseDto txDto) {
+        Brand brand = brandRepository.findById(txDto.getBrandId())
+                .orElseThrow(() -> new RuntimeException("Brand not found: " + txDto.getBrandId()));
+        Bank bank = bankRepository.findById(txDto.getBankId())
+                .orElseThrow(() -> new RuntimeException("Bank not found: " + txDto.getBankId()));
+        TransactionType type = transactionTypeRepository.findByType(TransactionTypeEnum.fromName(txDto.getTypeId()))
+                .orElseThrow(() -> new RuntimeException("Transaction type not found: " + txDto.getTypeId()));
+
+        tx.setDate(LocalDate.parse(txDto.getDate()));
+        tx.setAmount(txDto.getAmount());
+        tx.setNotes(txDto.getNotes());
+        tx.setBrand(brand);
+        tx.setBank(bank);
+        tx.setType(type);
+    }
+
+    private void updatePendingStatus(Transaction tx, boolean isPosted) {
+        if (isPosted) {
+            pendingTransactionRepository.deleteByTransactionId(tx.getId());
+        } else if (!pendingTransactionRepository.existsByTransactionId(tx.getId())) {
+            savePendingTransaction(tx);
+        }
+    }
+
+    private void deleteRemovedTransactions(List<Transaction> remainingTransactions) {
+        for (Transaction tx : remainingTransactions) {
+            pendingTransactionRepository.deleteByTransactionId(tx.getId());
+            transactionRepository.delete(tx);
+        }
     }
 }
