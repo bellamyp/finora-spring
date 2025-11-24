@@ -13,4 +13,5 @@ public class TransactionResponseDto {
     private String bankId;
     private String brandId;
     private String typeId;
+    private boolean posted;
 }

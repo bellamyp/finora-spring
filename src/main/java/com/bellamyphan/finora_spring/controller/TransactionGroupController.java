@@ -44,6 +44,25 @@ public class TransactionGroupController {
         return ResponseEntity.ok(groups);
     }
 
+    /**
+     * Get a specific transaction group by ID for the current user
+     */
+    @GetMapping("/{groupId}")
+    public ResponseEntity<TransactionGroupResponseDto> getGroupById(
+            @PathVariable("groupId") String groupId
+    ) {
+        // Get current user from JWT
+        String userId = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userService.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+
+        // Fetch the group for this user
+        TransactionGroupResponseDto group = transactionGroupService.getTransactionGroupByIdForUser(groupId, user)
+                .orElseThrow(() -> new RuntimeException("Transaction group not found: " + groupId));
+
+        return ResponseEntity.ok(group);
+    }
+
     @PostMapping
     public ResponseEntity<?> createTransactionGroup(@RequestBody TransactionGroupCreateDto dto) {
         String groupId = transactionGroupService.createTransactionGroup(dto);
@@ -53,5 +72,39 @@ public class TransactionGroupController {
                 "groupId", groupId,
                 "message", "Transaction group created successfully"
         ));
+    }
+
+    @PutMapping
+    public ResponseEntity<?> updateTransactionGroup(@RequestBody TransactionGroupResponseDto dto) {
+        // Validate that the DTO contains a group ID
+        if (dto.getId() == null || dto.getId().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", "Group ID must be provided for update"
+            ));
+        }
+
+        // Get current user from JWT
+        String userId = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userService.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+
+        try {
+            transactionGroupService.updateTransactionGroup(dto, user);
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "Transaction group updated successfully"
+            ));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", e.getMessage()
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of(
+                    "success", false,
+                    "message", "Failed to update transaction group: " + e.getMessage()
+            ));
+        }
     }
 }
