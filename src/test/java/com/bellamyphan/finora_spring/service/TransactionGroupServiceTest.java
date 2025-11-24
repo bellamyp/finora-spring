@@ -22,10 +22,6 @@ class TransactionGroupServiceTest {
     @Mock TransactionGroupRepository transactionGroupRepository;
     @Mock TransactionRepository transactionRepository;
     @Mock PendingTransactionRepository pendingTransactionRepository;
-    @Mock BrandRepository brandRepository;
-    @Mock TransactionTypeRepository transactionTypeRepository;
-    @Mock BankRepository bankRepository;
-    @Mock NanoIdService nanoIdService;
 
     @InjectMocks TransactionGroupService service;
 
