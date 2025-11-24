@@ -88,7 +88,7 @@ public class TransactionService {
             dto.setNotes(tx.getNotes());
             dto.setBankId(tx.getBank().getId());
             dto.setBrandId(tx.getBrand().getId());
-            dto.setTypeId(tx.getType().getId());
+            dto.setTypeId(tx.getType().getType().name());
 
             // Determine posted from PendingTransaction
             boolean isPending = pendingTransactionRepository.existsByTransactionId(tx.getId());
