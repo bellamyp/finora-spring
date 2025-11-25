@@ -53,7 +53,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/transactions/**",
                                 "/api/banks/**",
                                 "/api/brands/**",
-                                "/api/transaction-groups/**")
+                                "/api/transaction-groups/**",
+                                "/api/repeat-groups/**")
                         .hasRole("USER")
 
                         // ADMIN role can access everything else
