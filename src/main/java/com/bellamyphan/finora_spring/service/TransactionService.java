@@ -4,7 +4,9 @@ import com.bellamyphan.finora_spring.constant.TransactionTypeEnum;
 import com.bellamyphan.finora_spring.dto.TransactionResponseDto;
 import com.bellamyphan.finora_spring.dto.TransactionSearchDto;
 import com.bellamyphan.finora_spring.entity.Transaction;
+import com.bellamyphan.finora_spring.entity.User;
 import com.bellamyphan.finora_spring.repository.PendingTransactionRepository;
+import com.bellamyphan.finora_spring.repository.TransactionRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 import jakarta.persistence.criteria.CriteriaBuilder;
@@ -26,17 +28,29 @@ public class TransactionService {
 
     private final EntityManager em;
     private final PendingTransactionRepository pendingTransactionRepository;
+    private final TransactionRepository transactionRepository;
+
+    /**
+     * Efficient version:
+     * Load ONLY pending transactions for this user using a single optimized query.
+     */
+    public List<TransactionResponseDto> getPendingTransactionsForUser(User user) {
+        return transactionRepository.findPendingByUserId(user.getId())
+                .stream()
+                .map(this::toDto)
+                .collect(Collectors.toList());
+    }
 
     public List<TransactionResponseDto> searchTransactions(TransactionSearchDto searchDto) {
+
         CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Transaction> cq = cb.createQuery(Transaction.class);
         Root<Transaction> transaction = cq.from(Transaction.class);
 
         Predicate predicate = cb.conjunction();
-
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
-        // Date filters
+        // --- Date filters ---
         if (StringUtils.hasText(searchDto.getStartDate())) {
             LocalDate start = LocalDate.parse(searchDto.getStartDate(), fmt);
             predicate = cb.and(predicate, cb.greaterThanOrEqualTo(transaction.get("date"), start));
@@ -46,7 +60,7 @@ public class TransactionService {
             predicate = cb.and(predicate, cb.lessThanOrEqualTo(transaction.get("date"), end));
         }
 
-        // Amount filters
+        // --- Amount filters ---
         if (searchDto.getMinAmount() != null) {
             predicate = cb.and(predicate, cb.greaterThanOrEqualTo(transaction.get("amount"), searchDto.getMinAmount()));
         }
@@ -54,27 +68,29 @@ public class TransactionService {
             predicate = cb.and(predicate, cb.lessThanOrEqualTo(transaction.get("amount"), searchDto.getMaxAmount()));
         }
 
-        // Bank filter
+        // --- Bank ---
         if (StringUtils.hasText(searchDto.getBankId())) {
             predicate = cb.and(predicate, cb.equal(transaction.get("bank").get("id"), searchDto.getBankId()));
         }
 
-        // Brand filter
+        // --- Brand ---
         if (StringUtils.hasText(searchDto.getBrandId())) {
             predicate = cb.and(predicate, cb.equal(transaction.get("brand").get("id"), searchDto.getBrandId()));
         }
 
-        // Type filter
+        // --- Type ---
         if (StringUtils.hasText(searchDto.getTypeId())) {
-            // Compare with TransactionType.type (enum stored as string)
             predicate = cb.and(predicate,
-                    cb.equal(transaction.get("type").get("type"), TransactionTypeEnum.valueOf(searchDto.getTypeId()))
+                    cb.equal(transaction.get("type").get("type"),
+                            TransactionTypeEnum.valueOf(searchDto.getTypeId()))
             );
         }
 
-        // Keyword search in notes
+        // --- Notes keyword search ---
         if (StringUtils.hasText(searchDto.getKeyword())) {
-            predicate = cb.and(predicate, cb.like(cb.lower(transaction.get("notes")), "%" + searchDto.getKeyword().toLowerCase() + "%"));
+            predicate = cb.and(predicate,
+                    cb.like(cb.lower(transaction.get("notes")),
+                            "%" + searchDto.getKeyword().toLowerCase() + "%"));
         }
 
         cq.where(predicate);
@@ -83,23 +99,29 @@ public class TransactionService {
         TypedQuery<Transaction> query = em.createQuery(cq);
         List<Transaction> results = query.getResultList();
 
-        // Map to DTO — just return actual fields, do NOT modify posted
-        return results.stream().map(tx -> {
-            TransactionResponseDto dto = new TransactionResponseDto();
-            dto.setId(tx.getId());
-            dto.setGroupId(tx.getGroup().getId());
-            dto.setDate(tx.getDate().toString());
-            dto.setAmount(tx.getAmount());
-            dto.setNotes(tx.getNotes());
-            dto.setBankId(tx.getBank().getId());
-            dto.setBrandId(tx.getBrand().getId());
-            dto.setTypeId(tx.getType().getType().name());
+        return results.stream()
+                .map(this::toDto)
+                .collect(Collectors.toList());
+    }
 
-            // Determine posted from PendingTransaction
-            boolean isPending = pendingTransactionRepository.existsByTransactionId(tx.getId());
-            dto.setPosted(!isPending); // posted = true if NOT pending
+    // ============================================================
+    //   PRIVATE HELPERS
+    // ============================================================
 
-            return dto;
-        }).collect(Collectors.toList());
+    private TransactionResponseDto toDto(Transaction tx) {
+        boolean isPending = pendingTransactionRepository.existsByTransactionId(tx.getId());
+
+        TransactionResponseDto dto = new TransactionResponseDto();
+        dto.setId(tx.getId());
+        dto.setGroupId(tx.getGroup() != null ? tx.getGroup().getId() : null);
+        dto.setDate(tx.getDate().toString());
+        dto.setAmount(tx.getAmount());
+        dto.setNotes(tx.getNotes());
+        dto.setBankId(tx.getBank().getId());
+        dto.setBrandId(tx.getBrand().getId());
+        dto.setTypeId(tx.getType().getType().name());
+        dto.setPosted(!isPending); // posted = true if NOT pending
+
+        return dto;
     }
 }

@@ -16,6 +16,19 @@ public interface TransactionRepository extends JpaRepository<Transaction, String
 
     List<Transaction> findByGroup(TransactionGroup group);
 
+    @Query("""
+                SELECT t
+                FROM Transaction t
+                JOIN t.bank b
+                WHERE b.user.id = :userId
+                  AND EXISTS (
+                        SELECT 1
+                        FROM PendingTransaction p
+                        WHERE p.transaction.id = t.id
+                  )
+            """)
+    List<Transaction> findPendingByUserId(@Param("userId") String userId);
+
     // Calculate total balance for a bank
     @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE t.bank.id = :bankId")
     BigDecimal calculateBankBalance(@Param("bankId") String bankId);
