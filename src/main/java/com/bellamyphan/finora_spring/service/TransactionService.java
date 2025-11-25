@@ -1,5 +1,6 @@
 package com.bellamyphan.finora_spring.service;
 
+import com.bellamyphan.finora_spring.constant.TransactionTypeEnum;
 import com.bellamyphan.finora_spring.dto.TransactionResponseDto;
 import com.bellamyphan.finora_spring.dto.TransactionSearchDto;
 import com.bellamyphan.finora_spring.entity.Transaction;
@@ -65,7 +66,10 @@ public class TransactionService {
 
         // Type filter
         if (StringUtils.hasText(searchDto.getTypeId())) {
-            predicate = cb.and(predicate, cb.equal(transaction.get("type").get("id"), searchDto.getTypeId()));
+            // Compare with TransactionType.type (enum stored as string)
+            predicate = cb.and(predicate,
+                    cb.equal(transaction.get("type").get("type"), TransactionTypeEnum.valueOf(searchDto.getTypeId()))
+            );
         }
 
         // Keyword search in notes
