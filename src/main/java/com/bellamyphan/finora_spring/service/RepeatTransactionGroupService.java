@@ -20,7 +20,7 @@ public class RepeatTransactionGroupService {
     @Transactional
     public RepeatTransactionGroup markAsRepeat(TransactionGroup group) {
         // Check if already exists
-        return repeatRepository.findById(group)
+        return repeatRepository.findById(group.getId())
                 .orElseGet(() -> {
                     RepeatTransactionGroup repeatGroup = new RepeatTransactionGroup(group);
                     return repeatRepository.save(repeatGroup);

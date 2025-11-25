@@ -7,6 +7,6 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface RepeatTransactionGroupRepository
-        extends JpaRepository<RepeatTransactionGroup, TransactionGroup> {
+        extends JpaRepository<RepeatTransactionGroup, String> {
     // No extra methods needed for basic CRUD
 }
