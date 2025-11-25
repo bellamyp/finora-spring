@@ -32,9 +32,7 @@ public class TransactionGroupService {
     // ============================================================
     //   PENDING GROUPS (optimized)
     // ============================================================
-
     public List<TransactionGroupResponseDto> getPendingTransactionGroupsForUser(User user) {
-
         // Load only pending tx for this user
         List<Transaction> pending = transactionRepository.findPendingByUserId(user.getId());
 
@@ -57,9 +55,7 @@ public class TransactionGroupService {
     // ============================================================
     //   POSTED GROUPS (optimized)
     // ============================================================
-
     public List<TransactionGroupResponseDto> getPostedTransactionGroupsForUser(User user) {
-
         // Load all user transactions efficiently
         List<Transaction> allUserTx = transactionRepository.findByUserId(user.getId());
 
@@ -108,13 +104,11 @@ public class TransactionGroupService {
     }
 
     // ============================================================
-    //   LOAD GROUP BY ID FOR USER (unchanged)
+    //   LOAD GROUP BY ID FOR USER
     // ============================================================
-
     public Optional<TransactionGroupResponseDto> getTransactionGroupByIdForUser(String groupId, User user) {
         return transactionGroupRepository.findById(groupId)
                 .map(group -> {
-
                     List<TransactionResponseDto> transactions = transactionRepository.findByGroup(group).stream()
                             .filter(tx -> tx.getBank().getUser().getId().equals(user.getId()))
                             .map(this::toDto)
@@ -130,12 +124,10 @@ public class TransactionGroupService {
     }
 
     // ============================================================
-    //   CREATE GROUP (unchanged)
+    //   CREATE GROUP
     // ============================================================
-
     @Transactional
     public String createTransactionGroup(TransactionGroupCreateDto dto) {
-
         TransactionGroup group = saveGroupWithRetry(new TransactionGroup());
 
         Brand brand = brandRepository.findById(dto.getBrandId())
@@ -148,7 +140,6 @@ public class TransactionGroupService {
         LocalDate date = LocalDate.parse(dto.getDate());
 
         for (TransactionCreateDto row : dto.getTransactions()) {
-
             Bank bank = bankRepository.findById(row.getBankId())
                     .orElseThrow(() -> new RuntimeException("Bank not found: " + row.getBankId()));
 
@@ -169,13 +160,11 @@ public class TransactionGroupService {
     }
 
     // ============================================================
-    //   UPDATE GROUP (unchanged)
+    //   UPDATE GROUP
     // ============================================================
-
     @Transactional
     public void updateTransactionGroup(TransactionGroupResponseDto dto, User user) {
         TransactionGroup group = fetchTransactionGroup(dto.getId());
-
         List<Transaction> existingTransactions = getUserTransactionsForGroup(group, user);
 
         if (dto.getTransactions() == null || dto.getTransactions().isEmpty()) {
@@ -184,14 +173,12 @@ public class TransactionGroupService {
         }
 
         handleUpdatesAndAdditions(dto.getTransactions(), existingTransactions, group);
-
         deleteRemovedTransactions(existingTransactions);
     }
 
     // ============================================================
     //   PRIVATE HELPERS
     // ============================================================
-
     private TransactionResponseDto toDto(Transaction tx) {
         TransactionResponseDto txDto = new TransactionResponseDto();
         txDto.setId(tx.getId());
@@ -251,7 +238,6 @@ public class TransactionGroupService {
     private void handleUpdatesAndAdditions(List<TransactionResponseDto> txDtos,
                                            List<Transaction> existingTransactions,
                                            TransactionGroup group) {
-
         for (TransactionResponseDto txDto : txDtos) {
             Optional<Transaction> opt = existingTransactions.stream()
                     .filter(t -> t.getId().equals(txDto.getId()))
