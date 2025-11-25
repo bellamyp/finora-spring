@@ -31,13 +31,11 @@ public class TransactionGroupService {
     private final BankRepository bankRepository;
 
     // ============================================================
-    //   PENDING GROUPS (optimized)
+    // PENDING GROUPS (optimized)
     // ============================================================
     public List<TransactionGroupResponseDto> getPendingTransactionGroupsForUser(User user) {
-        // Load only pending tx for this user
         List<Transaction> pending = transactionRepository.findPendingByUserId(user.getId());
 
-        // Group by TransactionGroup
         Map<TransactionGroup, List<Transaction>> grouped = pending.stream()
                 .collect(Collectors.groupingBy(Transaction::getGroup));
 
@@ -54,21 +52,16 @@ public class TransactionGroupService {
     }
 
     // ============================================================
-    //   POSTED GROUPS (optimized)
+    // POSTED GROUPS (optimized)
     // ============================================================
     public List<TransactionGroupResponseDto> getPostedTransactionGroupsForUser(User user) {
-        // Load all user transactions efficiently
         List<Transaction> allUserTx = transactionRepository.findByUserId(user.getId());
-
-        // Load pending IDs once
         Set<String> pendingIds = pendingTransactionRepository.findAllTransactionIds();
 
-        // Filter out pending → leaving POSTED ONLY
         List<Transaction> posted = allUserTx.stream()
                 .filter(tx -> !pendingIds.contains(tx.getId()))
                 .toList();
 
-        // Group by TransactionGroup
         Map<TransactionGroup, List<Transaction>> grouped = posted.stream()
                 .collect(Collectors.groupingBy(Transaction::getGroup));
 
@@ -84,13 +77,11 @@ public class TransactionGroupService {
                     dto.setTransactions(txDtos);
                     return dto;
                 })
-                // Sort groups by newest transaction date
                 .sorted((g1, g2) -> {
                     String d1 = g1.getTransactions().stream()
                             .map(TransactionResponseDto::getDate)
                             .max(Comparator.naturalOrder())
                             .orElse(null);
-
                     String d2 = g2.getTransactions().stream()
                             .map(TransactionResponseDto::getDate)
                             .max(Comparator.naturalOrder())
@@ -104,25 +95,21 @@ public class TransactionGroupService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Get all transaction groups that are marked as repeat for a user.
-     */
+    // ============================================================
+    // REPEAT GROUPS (optimized)
+    // ============================================================
     public List<TransactionGroupResponseDto> getRepeatTransactionGroupsForUser(User user) {
         List<RepeatTransactionGroup> repeatGroups = repeatTransactionGroupRepository.findByUserId(user.getId());
 
         return repeatGroups.stream()
-                .map(RepeatTransactionGroup::getGroup) // get the actual TransactionGroup
+                .map(RepeatTransactionGroup::getGroup)
                 .map(group -> {
-                    // Use the optimized repository method
                     List<Transaction> userTxs = transactionRepository.findByGroupAndBankUserId(group, user.getId());
-
                     if (userTxs.isEmpty()) return null;
 
                     TransactionGroupResponseDto dto = new TransactionGroupResponseDto();
                     dto.setId(group.getId());
-                    dto.setTransactions(userTxs.stream()
-                            .map(this::toDto) // reuse your existing toDto method
-                            .collect(Collectors.toList()));
+                    dto.setTransactions(userTxs.stream().map(this::toDto).collect(Collectors.toList()));
                     return dto;
                 })
                 .filter(Objects::nonNull)
@@ -130,15 +117,16 @@ public class TransactionGroupService {
     }
 
     // ============================================================
-    //   LOAD GROUP BY ID FOR USER
+    // LOAD GROUP BY ID FOR USER
     // ============================================================
     public Optional<TransactionGroupResponseDto> getTransactionGroupByIdForUser(String groupId, User user) {
         return transactionGroupRepository.findById(groupId)
                 .map(group -> {
-                    List<TransactionResponseDto> transactions = transactionRepository.findByGroup(group).stream()
-                            .filter(tx -> tx.getBank().getUser().getId().equals(user.getId()))
-                            .map(this::toDto)
-                            .collect(Collectors.toList());
+                    List<TransactionResponseDto> transactions =
+                            transactionRepository.findByGroupAndBankUserId(group, user.getId())
+                                    .stream()
+                                    .map(this::toDto)
+                                    .collect(Collectors.toList());
 
                     if (transactions.isEmpty()) return null;
 
@@ -150,7 +138,7 @@ public class TransactionGroupService {
     }
 
     // ============================================================
-    //   CREATE GROUP
+    // CREATE GROUP
     // ============================================================
     @Transactional
     public String createTransactionGroup(TransactionGroupCreateDto dto) {
@@ -186,7 +174,7 @@ public class TransactionGroupService {
     }
 
     // ============================================================
-    //   UPDATE GROUP
+    // UPDATE GROUP
     // ============================================================
     @Transactional
     public void updateTransactionGroup(TransactionGroupResponseDto dto, User user) {
@@ -208,13 +196,11 @@ public class TransactionGroupService {
     }
 
     public List<Transaction> getUserTransactionsForGroup(TransactionGroup group, User user) {
-        return transactionRepository.findByGroup(group).stream()
-                .filter(tx -> tx.getBank().getUser().getId().equals(user.getId()))
-                .collect(Collectors.toList());
+        return transactionRepository.findByGroupAndBankUserId(group, user.getId());
     }
 
     // ============================================================
-    //   PRIVATE HELPERS
+    // PRIVATE HELPERS
     // ============================================================
     private TransactionResponseDto toDto(Transaction tx) {
         TransactionResponseDto txDto = new TransactionResponseDto();
