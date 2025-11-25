@@ -33,7 +33,7 @@ public class BankController {
     // GET banks by user token
     // -----------------------
     @GetMapping
-    public List<BankDto> getBanksByUserEmail() {
+    public List<BankDto> getBanksByUser() {
         // Get username/email from JWT token
         String userId = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userService.findById(userId)
@@ -41,12 +41,16 @@ public class BankController {
 
         return bankService.findBanksByUser(user)
                 .stream()
-                .map(bank -> new BankDto(
-                        bank.getId(),
-                        bank.getName(),
-                        bank.getType() != null ? bank.getType().getType() : null,
-                        bank.getUser() != null ? bank.getUser().getEmail() : "Unknown"
-                ))
+                .map(bank -> {
+                    BigDecimal balance = bankService.calculateBalance(bank.getId());
+                    return new BankDto(
+                            bank.getId(),
+                            bank.getName(),
+                            bank.getType() != null ? bank.getType().getType() : null,
+                            bank.getUser() != null ? bank.getUser().getEmail() : "Unknown",
+                            balance
+                    );
+                })
                 .collect(Collectors.toList());
     }
 
