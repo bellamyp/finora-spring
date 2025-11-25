@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -25,6 +26,29 @@ public class RepeatTransactionGroupController {
     private final RepeatTransactionGroupService repeatTransactionGroupService;
     private final TransactionGroupService groupService;
     private final UserService userService;
+
+    /**
+     * GET: Check if group is already marked as repeat.
+     */
+    @GetMapping("/{groupId}/is-repeat")
+    public ResponseEntity<?> isRepeat(@PathVariable String groupId) {
+        // Get user from the token
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User currentUser = userService.findById(username)
+                .orElseThrow(() -> new RuntimeException("User not found: " + username));
+
+        TransactionGroup group = groupService.fetchTransactionGroup(groupId);
+
+        // Ownership check
+        List<?> userTransactions = groupService.getUserTransactionsForGroup(group, currentUser);
+        if (userTransactions.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("You are not allowed to access this group's repeat status");
+        }
+
+        boolean exists = repeatTransactionGroupService.exists(groupId);
+        return ResponseEntity.ok(exists);
+    }
 
     @PostMapping("/{groupId}")
     public ResponseEntity<?> markAsRepeat(@PathVariable String groupId) {

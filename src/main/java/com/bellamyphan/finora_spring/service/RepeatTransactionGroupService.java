@@ -26,4 +26,8 @@ public class RepeatTransactionGroupService {
                     return repeatRepository.save(repeatGroup);
                 });
     }
+
+    public boolean exists(String groupId) {
+        return repeatRepository.existsById(groupId);
+    }
 }
