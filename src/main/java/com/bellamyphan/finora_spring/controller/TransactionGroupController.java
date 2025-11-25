@@ -37,6 +37,7 @@ public class TransactionGroupController {
         List<TransactionGroupResponseDto> groups = switch (status.toLowerCase()) {
             case "pending" -> transactionGroupService.getPendingTransactionGroupsForUser(user);
             case "posted" -> transactionGroupService.getPostedTransactionGroupsForUser(user);
+            case "repeat" -> transactionGroupService.getRepeatTransactionGroupsForUser(user);
             default ->
                     throw new IllegalArgumentException("Invalid status: " + status + ". Must be 'pending' or 'posted'.");
         };

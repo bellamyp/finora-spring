@@ -25,8 +25,9 @@ public class TransactionGroupService {
     private final TransactionGroupRepository transactionGroupRepository;
     private final TransactionRepository transactionRepository;
     private final PendingTransactionRepository pendingTransactionRepository;
-    private final BrandRepository brandRepository;
+    private final RepeatTransactionGroupRepository repeatTransactionGroupRepository;
     private final TransactionTypeRepository transactionTypeRepository;
+    private final BrandRepository brandRepository;
     private final BankRepository bankRepository;
 
     // ============================================================
@@ -100,6 +101,31 @@ public class TransactionGroupService {
                     if (d2 == null) return -1;
                     return d2.compareTo(d1);
                 })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Get all transaction groups that are marked as repeat for a user.
+     */
+    public List<TransactionGroupResponseDto> getRepeatTransactionGroupsForUser(User user) {
+        List<RepeatTransactionGroup> repeatGroups = repeatTransactionGroupRepository.findByUserId(user.getId());
+
+        return repeatGroups.stream()
+                .map(RepeatTransactionGroup::getGroup) // get the actual TransactionGroup
+                .map(group -> {
+                    // Use the optimized repository method
+                    List<Transaction> userTxs = transactionRepository.findByGroupAndBankUserId(group, user.getId());
+
+                    if (userTxs.isEmpty()) return null;
+
+                    TransactionGroupResponseDto dto = new TransactionGroupResponseDto();
+                    dto.setId(group.getId());
+                    dto.setTransactions(userTxs.stream()
+                            .map(this::toDto) // reuse your existing toDto method
+                            .collect(Collectors.toList()));
+                    return dto;
+                })
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
