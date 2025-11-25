@@ -176,6 +176,17 @@ public class TransactionGroupService {
         deleteRemovedTransactions(existingTransactions);
     }
 
+    public TransactionGroup fetchTransactionGroup(String groupId) {
+        return transactionGroupRepository.findById(groupId)
+                .orElseThrow(() -> new RuntimeException("Transaction group not found: " + groupId));
+    }
+
+    public List<Transaction> getUserTransactionsForGroup(TransactionGroup group, User user) {
+        return transactionRepository.findByGroup(group).stream()
+                .filter(tx -> tx.getBank().getUser().getId().equals(user.getId()))
+                .collect(Collectors.toList());
+    }
+
     // ============================================================
     //   PRIVATE HELPERS
     // ============================================================
@@ -214,17 +225,6 @@ public class TransactionGroupService {
 
     private PendingTransaction savePendingTransaction(Transaction tx) {
         return pendingTransactionRepository.save(new PendingTransaction(tx));
-    }
-
-    private TransactionGroup fetchTransactionGroup(String groupId) {
-        return transactionGroupRepository.findById(groupId)
-                .orElseThrow(() -> new RuntimeException("Transaction group not found: " + groupId));
-    }
-
-    private List<Transaction> getUserTransactionsForGroup(TransactionGroup group, User user) {
-        return transactionRepository.findByGroup(group).stream()
-                .filter(tx -> tx.getBank().getUser().getId().equals(user.getId()))
-                .collect(Collectors.toList());
     }
 
     private void deleteAllTransactionsAndGroup(List<Transaction> transactions, TransactionGroup group) {
