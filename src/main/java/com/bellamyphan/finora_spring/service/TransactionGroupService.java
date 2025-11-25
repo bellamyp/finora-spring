@@ -14,10 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -32,99 +29,98 @@ public class TransactionGroupService {
     private final TransactionTypeRepository transactionTypeRepository;
     private final BankRepository bankRepository;
 
-    // -------------------------------
-    // Get pending transactions for user
-    // -------------------------------
+    // ============================================================
+    //   PENDING GROUPS (optimized)
+    // ============================================================
+
     public List<TransactionGroupResponseDto> getPendingTransactionGroupsForUser(User user) {
-        return transactionGroupRepository.findAll().stream()
-                .map(group -> {
-                    List<TransactionResponseDto> transactions = transactionRepository
-                            .findByGroup(group).stream()
-                            .filter(tx -> tx.getBank().getUser().getId().equals(user.getId()))
-                            .filter(tx -> pendingTransactionRepository.existsByTransactionId(tx.getId()))
-                            .map(this::toDto)
-                            .collect(Collectors.toList());
 
-                    if (transactions.isEmpty()) {
-                        return null; // mark empty groups for filtering
-                    }
+        // Load only pending tx for this user
+        List<Transaction> pending = transactionRepository.findPendingByUserId(user.getId());
 
+        // Group by TransactionGroup
+        Map<TransactionGroup, List<Transaction>> grouped = pending.stream()
+                .collect(Collectors.groupingBy(Transaction::getGroup));
+
+        return grouped.entrySet().stream()
+                .map(entry -> {
                     TransactionGroupResponseDto dto = new TransactionGroupResponseDto();
-                    dto.setId(group.getId());
-                    dto.setTransactions(transactions);
+                    dto.setId(entry.getKey().getId());
+                    dto.setTransactions(entry.getValue().stream()
+                            .map(this::toDto)
+                            .collect(Collectors.toList()));
                     return dto;
                 })
-                .filter(Objects::nonNull) // remove empty groups
                 .collect(Collectors.toList());
     }
 
-    // -------------------------------
-    // Get posted transactions for user
-    // -------------------------------
+    // ============================================================
+    //   POSTED GROUPS (optimized)
+    // ============================================================
+
     public List<TransactionGroupResponseDto> getPostedTransactionGroupsForUser(User user) {
-        return transactionGroupRepository.findAll().stream()
-                .map(group -> {
-                    List<TransactionResponseDto> transactions = transactionRepository
-                            .findByGroup(group).stream()
-                            .filter(tx -> tx.getBank().getUser().getId().equals(user.getId()))
-                            .filter(tx -> !pendingTransactionRepository.existsByTransactionId(tx.getId()))
+
+        // Load all user transactions efficiently
+        List<Transaction> allUserTx = transactionRepository.findByUserId(user.getId());
+
+        // Load pending IDs once
+        Set<String> pendingIds = pendingTransactionRepository.findAllTransactionIds();
+
+        // Filter out pending → leaving POSTED ONLY
+        List<Transaction> posted = allUserTx.stream()
+                .filter(tx -> !pendingIds.contains(tx.getId()))
+                .collect(Collectors.toList());
+
+        // Group by TransactionGroup
+        Map<TransactionGroup, List<Transaction>> grouped = posted.stream()
+                .collect(Collectors.groupingBy(Transaction::getGroup));
+
+        return grouped.entrySet().stream()
+                .map(entry -> {
+                    List<TransactionResponseDto> txDtos = entry.getValue().stream()
                             .map(this::toDto)
+                            .sorted(Comparator.comparing(TransactionResponseDto::getDate).reversed())
                             .collect(Collectors.toList());
 
-                    if (transactions.isEmpty()) return null;
-
-                    // Sort transactions inside group (newest first, null last)
-                    transactions.sort(
-                            Comparator.comparing(TransactionResponseDto::getDate,
-                                            Comparator.nullsLast(Comparator.naturalOrder()))
-                                    .reversed()
-                    );
-
                     TransactionGroupResponseDto dto = new TransactionGroupResponseDto();
-                    dto.setId(group.getId());
-                    dto.setTransactions(transactions);
+                    dto.setId(entry.getKey().getId());
+                    dto.setTransactions(txDtos);
                     return dto;
                 })
-                .filter(Objects::nonNull)
-                // Now sort groups by each group's latest transaction date
+                // Sort groups by newest transaction date
                 .sorted((g1, g2) -> {
-                    // extract latest date from each group
-                    var d1 = g1.getTransactions().stream()
+                    String d1 = g1.getTransactions().stream()
                             .map(TransactionResponseDto::getDate)
-                            .filter(Objects::nonNull)
                             .max(Comparator.naturalOrder())
                             .orElse(null);
 
-                    var d2 = g2.getTransactions().stream()
+                    String d2 = g2.getTransactions().stream()
                             .map(TransactionResponseDto::getDate)
-                            .filter(Objects::nonNull)
                             .max(Comparator.naturalOrder())
                             .orElse(null);
 
-                    // Manual null-safe compare: newest first, nulls last
                     if (d1 == null && d2 == null) return 0;
-                    if (d1 == null) return 1;   // d2 is "newer" (d1 goes after)
-                    if (d2 == null) return -1;  // d1 is "newer"
-                    return d2.compareTo(d1);    // reverse order: newest first
+                    if (d1 == null) return 1;
+                    if (d2 == null) return -1;
+                    return d2.compareTo(d1);
                 })
                 .collect(Collectors.toList());
     }
 
-    // -------------------------------
-    // Get specific transactions for user
-    // -------------------------------
+    // ============================================================
+    //   LOAD GROUP BY ID FOR USER (unchanged)
+    // ============================================================
+
     public Optional<TransactionGroupResponseDto> getTransactionGroupByIdForUser(String groupId, User user) {
         return transactionGroupRepository.findById(groupId)
                 .map(group -> {
-                    // Filter transactions that belong to this user (via bank)
+
                     List<TransactionResponseDto> transactions = transactionRepository.findByGroup(group).stream()
                             .filter(tx -> tx.getBank().getUser().getId().equals(user.getId()))
                             .map(this::toDto)
                             .collect(Collectors.toList());
 
-                    if (transactions.isEmpty()) {
-                        return null; // no transactions for this user
-                    }
+                    if (transactions.isEmpty()) return null;
 
                     TransactionGroupResponseDto dto = new TransactionGroupResponseDto();
                     dto.setId(group.getId());
@@ -133,33 +129,31 @@ public class TransactionGroupService {
                 });
     }
 
+    // ============================================================
+    //   CREATE GROUP (unchanged)
+    // ============================================================
+
     @Transactional
     public String createTransactionGroup(TransactionGroupCreateDto dto) {
 
-        // ---------------- GET REPORT ----------------
-        // Todo: get the latest report here to add to the transaction group.
+        TransactionGroup group = saveGroupWithRetry(new TransactionGroup());
 
-        // ---------------- CREATE GROUP WITH RETRIES ----------------
-        TransactionGroup group = new TransactionGroup();
-        TransactionGroup savedGroup = saveGroupWithRetry(group);
-
-        // ---------------- RESOLVE LOOKUPS ----------------
         Brand brand = brandRepository.findById(dto.getBrandId())
                 .orElseThrow(() -> new RuntimeException("Brand not found: " + dto.getBrandId()));
 
-        TransactionType type = transactionTypeRepository.findByType(TransactionTypeEnum.fromName(dto.getTypeId()))
+        TransactionType type = transactionTypeRepository
+                .findByType(TransactionTypeEnum.fromName(dto.getTypeId()))
                 .orElseThrow(() -> new RuntimeException("Transaction type not found: " + dto.getTypeId()));
 
         LocalDate date = LocalDate.parse(dto.getDate());
 
-        // ---------------- CREATE EACH TRANSACTION ----------------
         for (TransactionCreateDto row : dto.getTransactions()) {
 
             Bank bank = bankRepository.findById(row.getBankId())
                     .orElseThrow(() -> new RuntimeException("Bank not found: " + row.getBankId()));
 
             Transaction tx = new Transaction();
-            tx.setGroup(savedGroup);
+            tx.setGroup(group);
             tx.setDate(date);
             tx.setAmount(row.getAmount() == null ? BigDecimal.ZERO : BigDecimal.valueOf(row.getAmount()));
             tx.setNotes(row.getNotes());
@@ -167,32 +161,30 @@ public class TransactionGroupService {
             tx.setBrand(brand);
             tx.setType(type);
 
-            // Save transaction and also mark as pending
             Transaction savedTx = saveTransactionWithRetry(tx);
             savePendingTransaction(savedTx);
         }
 
-        return savedGroup.getId();
+        return group.getId();
     }
+
+    // ============================================================
+    //   UPDATE GROUP (unchanged)
+    // ============================================================
 
     @Transactional
     public void updateTransactionGroup(TransactionGroupResponseDto dto, User user) {
-        // 1️⃣ Validate input and fetch group
         TransactionGroup group = fetchTransactionGroup(dto.getId());
 
-        // 2️⃣ Fetch current transactions for this user
         List<Transaction> existingTransactions = getUserTransactionsForGroup(group, user);
 
-        // 3️⃣ Handle case: DTO has no transactions → delete all
         if (dto.getTransactions() == null || dto.getTransactions().isEmpty()) {
             deleteAllTransactionsAndGroup(existingTransactions, group);
             return;
         }
 
-        // 4️⃣ Handle updates and additions
         handleUpdatesAndAdditions(dto.getTransactions(), existingTransactions, group);
 
-        // 5️⃣ Delete any transactions removed in DTO
         deleteRemovedTransactions(existingTransactions);
     }
 
@@ -209,7 +201,6 @@ public class TransactionGroupService {
         txDto.setBankId(tx.getBank().getId());
         txDto.setBrandId(tx.getBrand().getId());
         txDto.setTypeId(tx.getType().getType().name());
-        // posted = true if transaction is not pending
         txDto.setPosted(!pendingTransactionRepository.existsByTransactionId(tx.getId()));
         return txDto;
     }
@@ -219,11 +210,9 @@ public class TransactionGroupService {
             try {
                 group.setId(nanoIdService.generate());
                 return transactionGroupRepository.save(group);
-            } catch (DataIntegrityViolationException ignored) {
-                // ID collision — retry
-            }
+            } catch (DataIntegrityViolationException ignored) {}
         }
-        throw new RuntimeException("Failed to generate unique TransactionGroup ID after 10 attempts");
+        throw new RuntimeException("Failed to generate unique TransactionGroup ID");
     }
 
     private Transaction saveTransactionWithRetry(Transaction tx) {
@@ -231,22 +220,16 @@ public class TransactionGroupService {
             try {
                 tx.setId(nanoIdService.generate());
                 return transactionRepository.save(tx);
-            } catch (DataIntegrityViolationException ignored) {
-                // collision — retry
-            }
+            } catch (DataIntegrityViolationException ignored) {}
         }
-        throw new RuntimeException("Failed to generate unique Transaction ID after 10 attempts");
+        throw new RuntimeException("Failed to generate unique Transaction ID");
     }
 
     private PendingTransaction savePendingTransaction(Transaction tx) {
-        PendingTransaction pending = new PendingTransaction(tx);
-        return pendingTransactionRepository.save(pending);
+        return pendingTransactionRepository.save(new PendingTransaction(tx));
     }
 
     private TransactionGroup fetchTransactionGroup(String groupId) {
-        if (groupId == null || groupId.isEmpty()) {
-            throw new IllegalArgumentException("Transaction group ID is required");
-        }
         return transactionGroupRepository.findById(groupId)
                 .orElseThrow(() -> new RuntimeException("Transaction group not found: " + groupId));
     }
@@ -262,18 +245,21 @@ public class TransactionGroupService {
             pendingTransactionRepository.deleteByTransactionId(tx.getId());
             transactionRepository.delete(tx);
         }
-        transactionGroupRepository.deleteById(group.getId());
+        transactionGroupRepository.delete(group);
     }
 
-    private void handleUpdatesAndAdditions(List<TransactionResponseDto> txDtos, List<Transaction> existingTransactions, TransactionGroup group) {
+    private void handleUpdatesAndAdditions(List<TransactionResponseDto> txDtos,
+                                           List<Transaction> existingTransactions,
+                                           TransactionGroup group) {
+
         for (TransactionResponseDto txDto : txDtos) {
-            Transaction tx;
-            Optional<Transaction> existingTxOpt = existingTransactions.stream()
+            Optional<Transaction> opt = existingTransactions.stream()
                     .filter(t -> t.getId().equals(txDto.getId()))
                     .findFirst();
 
-            if (existingTxOpt.isPresent()) {
-                tx = existingTxOpt.get();
+            Transaction tx;
+            if (opt.isPresent()) {
+                tx = opt.get();
                 existingTransactions.remove(tx);
             } else {
                 tx = new Transaction();
@@ -282,8 +268,8 @@ public class TransactionGroupService {
 
             resolveLookupsAndSetFields(tx, txDto);
 
-            // Save safely
-            Transaction savedTx = existingTxOpt.isPresent() ? transactionRepository.save(tx)
+            Transaction savedTx = opt.isPresent()
+                    ? transactionRepository.save(tx)
                     : saveTransactionWithRetry(tx);
 
             updatePendingStatus(savedTx, txDto.isPosted());
@@ -293,9 +279,12 @@ public class TransactionGroupService {
     private void resolveLookupsAndSetFields(Transaction tx, TransactionResponseDto txDto) {
         Brand brand = brandRepository.findById(txDto.getBrandId())
                 .orElseThrow(() -> new RuntimeException("Brand not found: " + txDto.getBrandId()));
+
         Bank bank = bankRepository.findById(txDto.getBankId())
                 .orElseThrow(() -> new RuntimeException("Bank not found: " + txDto.getBankId()));
-        TransactionType type = transactionTypeRepository.findByType(TransactionTypeEnum.fromName(txDto.getTypeId()))
+
+        TransactionType type = transactionTypeRepository
+                .findByType(TransactionTypeEnum.fromName(txDto.getTypeId()))
                 .orElseThrow(() -> new RuntimeException("Transaction type not found: " + txDto.getTypeId()));
 
         tx.setDate(LocalDate.parse(txDto.getDate()));
