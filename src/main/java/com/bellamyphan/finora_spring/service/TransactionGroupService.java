@@ -69,7 +69,7 @@ public class TransactionGroupService {
         // Filter out pending → leaving POSTED ONLY
         List<Transaction> posted = allUserTx.stream()
                 .filter(tx -> !pendingIds.contains(tx.getId()))
-                .collect(Collectors.toList());
+                .toList();
 
         // Group by TransactionGroup
         Map<TransactionGroup, List<Transaction>> grouped = posted.stream()
