@@ -5,7 +5,6 @@ import com.bellamyphan.finora_spring.entity.User;
 import com.bellamyphan.finora_spring.repository.BankRepository;
 import com.bellamyphan.finora_spring.repository.TransactionRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
