@@ -14,11 +14,11 @@ public interface RepeatTransactionGroupRepository
     // No extra methods needed for basic CRUD
 
     @Query("""
-    SELECT r
-    FROM RepeatTransactionGroup r
-    JOIN r.group g
-    JOIN g.transactions t
-    WHERE t.bank.user.id = :userId
-""")
+        SELECT DISTINCT r
+        FROM RepeatTransactionGroup r
+        JOIN Transaction t ON t.group = r.group
+        JOIN t.bank b
+        WHERE b.user.id = :userId
+    """)
     List<RepeatTransactionGroup> findByUserId(@Param("userId") String userId);
 }
