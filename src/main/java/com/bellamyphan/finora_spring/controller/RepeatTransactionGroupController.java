@@ -10,11 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -70,5 +66,32 @@ public class RepeatTransactionGroupController {
         // Mark as repeat
         RepeatTransactionGroup repeatGroup = repeatTransactionGroupService.markAsRepeat(group);
         return ResponseEntity.ok(repeatGroup);
+    }
+
+    @DeleteMapping("/{groupId}")
+    public ResponseEntity<?> removeRepeat(@PathVariable String groupId) {
+        // Get current user
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User currentUser = userService.findById(username)
+                .orElseThrow(() -> new RuntimeException("User not found: " + username));
+
+        // Fetch group entity
+        TransactionGroup group = groupService.fetchTransactionGroup(groupId);
+
+        // Verify ownership via transactions
+        List<?> userTransactions = groupService.getUserTransactionsForGroup(group, currentUser);
+        if (userTransactions.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("You are not allowed to remove repeat status from this group");
+        }
+
+        // Delete repeat record if exists
+        if (repeatTransactionGroupService.exists(groupId)) {
+            repeatTransactionGroupService.removeRepeat(group);
+            return ResponseEntity.ok("Repeat status removed successfully");
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body("Group is not marked as repeat");
+        }
     }
 }

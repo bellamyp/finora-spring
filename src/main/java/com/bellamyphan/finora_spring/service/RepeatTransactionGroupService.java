@@ -27,6 +27,14 @@ public class RepeatTransactionGroupService {
                 });
     }
 
+    /**
+     * Remove repeat flag of the given transaction group.
+     */
+    @Transactional
+    public void removeRepeat(TransactionGroup group) {
+        repeatRepository.findById(group.getId()).ifPresent(repeatRepository::delete);
+    }
+
     public boolean exists(String groupId) {
         return repeatRepository.existsById(groupId);
     }
