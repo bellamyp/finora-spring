@@ -295,8 +295,20 @@ public class TransactionGroupService {
 
     private void updatePendingStatus(Transaction tx, boolean isPosted) {
         if (isPosted) {
+            // Validate required fields
+            if (tx.getDate() == null ||
+                    tx.getAmount() == null ||
+                    tx.getBank() == null ||
+                    tx.getBrand() == null ||
+                    tx.getLocation() == null ||
+                    tx.getType() == null) {
+                throw new RuntimeException("Cannot post transaction: required fields missing");
+            }
+
+            // Remove from pending since it's fully filled
             pendingTransactionRepository.deleteByTransactionId(tx.getId());
         } else if (!pendingTransactionRepository.existsByTransactionId(tx.getId())) {
+            // Keep in pending table if not posted
             savePendingTransaction(tx);
         }
     }
