@@ -11,11 +11,13 @@ import lombok.NoArgsConstructor;
 public class RepeatTransactionGroup {
 
     @Id
+    private String groupId; // Primary key, matches TransactionGroup.id
+
     @OneToOne(fetch = FetchType.EAGER, optional = false)
-    @JoinColumn(name = "group_id", nullable = false, foreignKey = @ForeignKey(name = "fk_repeat_transaction_groups_transaction_groups"))
+    @MapsId // Maps groupId from TransactionGroup entity
+    @JoinColumn(name = "group_id", foreignKey = @ForeignKey(name = "fk_repeat_transaction_groups_transaction_groups"))
     private TransactionGroup group;
 
-    // Constructor
     public RepeatTransactionGroup(TransactionGroup group) {
         this.group = group;
     }

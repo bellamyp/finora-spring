@@ -12,11 +12,42 @@ import java.util.List;
 
 @Repository
 public interface TransactionRepository extends JpaRepository<Transaction, String> {
-    // JpaRepository provides basic CRUD operations
 
     List<Transaction> findByGroup(TransactionGroup group);
 
-    // Calculate total balance for a bank
+    @Query("""
+        SELECT t
+        FROM Transaction t
+        JOIN t.bank b
+        WHERE b.user.id = :userId
+        """)
+    List<Transaction> findByUserId(@Param("userId") String userId);
+
+    @Query("""
+            SELECT t
+            FROM Transaction t
+            JOIN t.bank b
+            WHERE b.user.id = :userId
+              AND EXISTS (
+                    SELECT 1
+                    FROM PendingTransaction p
+                    WHERE p.transaction.id = t.id
+              )
+            """)
+    List<Transaction> findPendingByUserId(@Param("userId") String userId);
+
+    @Query("""
+        SELECT t
+        FROM Transaction t
+        JOIN t.bank b
+        WHERE t.group = :group
+          AND b.user.id = :userId
+        """)
+    List<Transaction> findByGroupAndBankUserId(
+            @Param("group") TransactionGroup group,
+            @Param("userId") String userId
+    );
+
     @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE t.bank.id = :bankId")
     BigDecimal calculateBankBalance(@Param("bankId") String bankId);
 }
