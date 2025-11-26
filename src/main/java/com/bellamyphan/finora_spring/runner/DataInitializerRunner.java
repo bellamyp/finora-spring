@@ -1,9 +1,12 @@
 package com.bellamyphan.finora_spring.runner;
 
+import com.bellamyphan.finora_spring.constant.BankTypeEnum;
 import com.bellamyphan.finora_spring.constant.RoleEnum;
 import com.bellamyphan.finora_spring.constant.TransactionTypeEnum;
+import com.bellamyphan.finora_spring.entity.BankType;
 import com.bellamyphan.finora_spring.entity.Role;
 import com.bellamyphan.finora_spring.entity.TransactionType;
+import com.bellamyphan.finora_spring.service.BankTypeService;
 import com.bellamyphan.finora_spring.service.RoleService;
 import com.bellamyphan.finora_spring.service.TransactionTypeService;
 import lombok.RequiredArgsConstructor;
@@ -18,11 +21,13 @@ public class DataInitializerRunner implements CommandLineRunner {
 
     private static final Logger logger = LoggerFactory.getLogger(DataInitializerRunner.class);
     private final RoleService roleService;
+    private final BankTypeService bankTypeService;
     private final TransactionTypeService transactionTypeService;
 
     @Override
     public void run(String... args) {
         initRoles();
+        initBankTypes();
         initTransactionTypes();
     }
 
@@ -39,9 +44,22 @@ public class DataInitializerRunner implements CommandLineRunner {
         }
     }
 
+    private void initBankTypes() {
+        for (BankTypeEnum typeEnum : BankTypeEnum.values()) {
+            if (!bankTypeService.existsByType(typeEnum)) {
+                BankType type = new BankType();
+                type.setType(typeEnum);
+                bankTypeService.save(type);
+                logger.info("✅ Bank type created: {}", typeEnum.name());
+            } else {
+                logger.info("ℹ️ Bank type already exists: {}", typeEnum.name());
+            }
+        }
+    }
+
     private void initTransactionTypes() {
         for (TransactionTypeEnum typeEnum : TransactionTypeEnum.values()) {
-            if (!transactionTypeService.existsByName(typeEnum)) {
+            if (!transactionTypeService.existsByType(typeEnum)) {
                 TransactionType type  = new TransactionType();
                 type.setType(typeEnum);
                 transactionTypeService.save(type);

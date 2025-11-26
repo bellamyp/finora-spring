@@ -14,7 +14,7 @@ public class TransactionTypeService {
     private final TransactionTypeRepository transactionTypeRepository;
     private final NanoIdService nanoIdService;
 
-    public boolean existsByName(TransactionTypeEnum type) {
+    public boolean existsByType(TransactionTypeEnum type) {
         return transactionTypeRepository.findByType(type).isPresent();
     }
 
