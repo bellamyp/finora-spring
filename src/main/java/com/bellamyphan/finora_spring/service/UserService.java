@@ -7,7 +7,6 @@ import com.bellamyphan.finora_spring.entity.User;
 import com.bellamyphan.finora_spring.repository.RoleRepository;
 import com.bellamyphan.finora_spring.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -30,7 +29,7 @@ public class UserService {
         }
 
         // 2. Check if email already exists
-        if (userRepository.existsByEmail(userDto.getEmail().toLowerCase())) {
+        if (userRepository.existsByEmailIgnoreCase(userDto.getEmail().toLowerCase())) {
             throw new IllegalArgumentException("Email already exists: " + userDto.getEmail());
         }
 
@@ -60,21 +59,14 @@ public class UserService {
         // 6. Create User entity
         User user = new User();
         user.setName(userDto.getName());
-        user.setEmail(userDto.getEmail());
+        user.setEmail(userDto.getEmail().toLowerCase());
         user.setPassword(passwordService.hash(userDto.getPassword()));
         user.setRole(role);
 
         // 7. Generate unique NanoID with retry
-        for (int i = 0; i < 10; i++) {
-            try {
-                user.setId(nanoIdService.generate());
-                return userRepository.save(user);
-            } catch (DataIntegrityViolationException ignored) {
-                // Retry with new ID
-            }
-        }
-
-        throw new RuntimeException("Failed to generate unique NanoID after 10 attempts");
+        String newId = nanoIdService.generateUniqueId(userRepository);
+        user.setId(newId);
+        return userRepository.save(user);
     }
 
     public Optional<User> findById(String id) {
@@ -82,7 +74,7 @@ public class UserService {
     }
 
     public Optional<User> findByEmail(String email) {
-        return userRepository.findByEmail(email);
+        return userRepository.findByEmailIgnoreCase(email);
     }
 
     public List<User> findAll() {

@@ -11,5 +11,5 @@ public class BrandCreateDto {
     @NotBlank(message = "Brand name is required")
     private String name;
 
-    private String location;
+    private String url;
 }

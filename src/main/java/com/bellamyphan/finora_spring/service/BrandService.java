@@ -3,10 +3,8 @@ package com.bellamyphan.finora_spring.service;
 import com.bellamyphan.finora_spring.dto.BrandCreateDto;
 import com.bellamyphan.finora_spring.dto.BrandDto;
 import com.bellamyphan.finora_spring.entity.Brand;
-import com.bellamyphan.finora_spring.entity.User;
 import com.bellamyphan.finora_spring.repository.BrandRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -19,48 +17,31 @@ public class BrandService {
     private final NanoIdService nanoIdService;
 
     /**
-     * Fetch all brands for a given user
+     * Fetch all brands
      */
-    public List<Brand> findBrandsByUser(User user) {
-        return brandRepository.findByUserOrderByNameAsc(user);
+    public List<BrandDto> getAllBrands() {
+        return brandRepository.findAllByOrderByNameAsc()
+                .stream()
+                .map(BrandDto::fromEntity)
+                .toList();
     }
 
-    public BrandDto createBrand(BrandCreateDto request, User user) {
+    public BrandDto createBrand(BrandCreateDto request) {
+        // Normalize name and URL
+        String normalizedName = request.getName().trim();
+        String urlNormalized = request.getUrl() != null ? request.getUrl().trim().toLowerCase() : null;
 
-        // Prevent duplicate brand with same name AND same location
-        if (brandRepository.existsByNameIgnoreCaseAndLocationIgnoreCaseAndUser(
-                request.getName(),
-                request.getLocation(),
-                user
-        )) {
-            throw new IllegalArgumentException(
-                    "Brand '" + request.getName() + "' at location '" +
-                            request.getLocation() + "' already exists."
-            );
+        // Check for name or url duplication
+        if (brandRepository.existsByNameIgnoreCase(normalizedName)) {
+            throw new IllegalArgumentException("Brand name already exists: '" + normalizedName + "'");
+        }
+        if (urlNormalized != null && brandRepository.existsByUrlIgnoreCase(urlNormalized)) {
+            throw new IllegalArgumentException("Brand URL already exists: '" + urlNormalized + "'");
         }
 
-        Brand brand = new Brand(user, request.getName(), request.getLocation());
-
-        for (int i = 0; i < 10; i++) {
-            try {
-                brand.setId(nanoIdService.generate());
-                return toDto(brandRepository.save(brand)); // success
-            } catch (DataIntegrityViolationException ignored) {
-                // retry if collision
-            }
-        }
-
-        throw new RuntimeException("Failed to generate unique Brand ID after 10 attempts");
-    }
-
-    /**
-     * Convert Brand → BrandDto
-     */
-    private BrandDto toDto(Brand brand) {
-        return new BrandDto(
-                brand.getId(),
-                brand.getName(),
-                brand.getLocation()
-        );
+        // Create brand and save to DB.
+        Brand brand = new Brand(normalizedName, urlNormalized);
+        brand.setId(nanoIdService.generateUniqueId(brandRepository));
+        return BrandDto.fromEntity(brandRepository.save(brand));
     }
 }

@@ -8,7 +8,6 @@ import com.bellamyphan.finora_spring.entity.User;
 import com.bellamyphan.finora_spring.repository.PendingTransactionRepository;
 import com.bellamyphan.finora_spring.repository.TransactionRepository;
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.TypedQuery;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Predicate;
@@ -41,7 +40,7 @@ public class TransactionService {
                 .collect(Collectors.toList());
     }
 
-    public List<TransactionResponseDto> searchTransactions(TransactionSearchDto searchDto) {
+    public List<TransactionResponseDto> searchTransactions(TransactionSearchDto searchDto, User user) {
 
         CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Transaction> cq = cb.createQuery(Transaction.class);
@@ -93,16 +92,19 @@ public class TransactionService {
                             "%" + searchDto.getKeyword().toLowerCase() + "%"));
         }
 
+        // --- USER filter: only return transactions for this user ---
+        predicate = cb.and(predicate, cb.equal(transaction.get("bank").get("user").get("id"), user.getId()));
+
         cq.where(predicate);
         cq.orderBy(cb.desc(transaction.get("date"))); // newest first
 
-        TypedQuery<Transaction> query = em.createQuery(cq);
-        List<Transaction> results = query.getResultList();
+        List<Transaction> results = em.createQuery(cq).getResultList();
 
         return results.stream()
                 .map(this::toDto)
                 .collect(Collectors.toList());
     }
+
 
     // ============================================================
     //   PRIVATE HELPERS

@@ -23,15 +23,9 @@ public class BankService {
      * Save a new bank with unique 10-char ID
      */
     public Bank createBank(Bank bank) {
-        for (int i = 0; i < 10; i++) {
-            try {
-                bank.setId(nanoIdService.generate()); // generate 10-char NanoID
-                return bankRepository.save(bank);
-            } catch (DataIntegrityViolationException ignored) {
-                // retry if NanoID collides
-            }
-        }
-        throw new RuntimeException("Failed to generate unique Bank ID after 10 attempts");
+        String bankId = nanoIdService.generateUniqueId(bankRepository);
+        bank.setId(bankId);
+        return bankRepository.save(bank);
     }
 
     /**

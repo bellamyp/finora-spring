@@ -3,11 +3,10 @@ package com.bellamyphan.finora_spring.controller;
 import com.bellamyphan.finora_spring.dto.TransactionGroupCreateDto;
 import com.bellamyphan.finora_spring.dto.TransactionGroupResponseDto;
 import com.bellamyphan.finora_spring.entity.User;
+import com.bellamyphan.finora_spring.service.JwtService;
 import com.bellamyphan.finora_spring.service.TransactionGroupService;
-import com.bellamyphan.finora_spring.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,7 +18,7 @@ import java.util.Map;
 public class TransactionGroupController {
 
     private final TransactionGroupService transactionGroupService;
-    private final UserService userService;
+    private final JwtService jwtService;
 
     /**
      * Get transaction groups for the current user.
@@ -30,9 +29,7 @@ public class TransactionGroupController {
             @RequestParam(value = "status", required = false, defaultValue = "posted") String status
     ) {
         // Get user ID from JWT
-        String userId = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userService.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+        User user = jwtService.getCurrentUser();
 
         List<TransactionGroupResponseDto> groups = switch (status.toLowerCase()) {
             case "pending" -> transactionGroupService.getPendingTransactionGroupsForUser(user);
@@ -53,9 +50,7 @@ public class TransactionGroupController {
             @PathVariable("groupId") String groupId
     ) {
         // Get current user from JWT
-        String userId = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userService.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+        User user = jwtService.getCurrentUser();
 
         // Fetch the group for this user
         TransactionGroupResponseDto group = transactionGroupService.getTransactionGroupByIdForUser(groupId, user)
@@ -86,9 +81,7 @@ public class TransactionGroupController {
         }
 
         // Get current user from JWT
-        String userId = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userService.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+        User user = jwtService.getCurrentUser();
 
         try {
             transactionGroupService.updateTransactionGroup(dto, user);

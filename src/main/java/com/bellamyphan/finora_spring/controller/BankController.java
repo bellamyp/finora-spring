@@ -7,12 +7,11 @@ import com.bellamyphan.finora_spring.entity.BankType;
 import com.bellamyphan.finora_spring.entity.User;
 import com.bellamyphan.finora_spring.repository.BankTypeRepository;
 import com.bellamyphan.finora_spring.service.BankService;
-import com.bellamyphan.finora_spring.service.UserService;
+import com.bellamyphan.finora_spring.service.JwtService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -27,17 +26,14 @@ public class BankController {
 
     private final BankTypeRepository bankTypeRepository;
     private final BankService bankService;
-    private final UserService userService;
+    private final JwtService jwtService;
 
     // -----------------------
     // GET banks by user token
     // -----------------------
     @GetMapping
     public List<BankDto> getBanksByUser() {
-        // Get username/email from JWT token
-        String userId = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userService.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+        User user = jwtService.getCurrentUser();
 
         return bankService.findBanksByUser(user)
                 .stream()
@@ -59,11 +55,7 @@ public class BankController {
     // -----------------------
     @GetMapping("/{id}")
     public ResponseEntity<BankDto> getBankById(@PathVariable String id) {
-        // Get the user info from token
-        String userId = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userService.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
-
+        User user = jwtService.getCurrentUser();
         Bank bank = bankService.findBankById(id);
 
         if (!bank.getUser().getId().equals(user.getId())) {
@@ -87,22 +79,19 @@ public class BankController {
     // POST create new bank
     // -----------------------
     @PostMapping
-    public ResponseEntity<BankDto> createNewBank(@Valid @RequestBody BankCreateDto dto) {
-
+    public ResponseEntity<BankDto> createNewBank(@Valid @RequestBody BankCreateDto bankCreateDto) {
         // Get username/email from JWT token
-        String userId = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userService.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+        User user = jwtService.getCurrentUser();
 
         // Find bank type
-        BankType bankType = bankTypeRepository.findByType(dto.getType())
-                .orElseThrow(() -> new RuntimeException("Bank type not found: " + dto.getType()));
+        BankType bankType = bankTypeRepository.findByType(bankCreateDto.getType())
+                .orElseThrow(() -> new RuntimeException("Bank type not found: " + bankCreateDto.getType()));
 
         // Create new bank entity
         Bank bank = new Bank(
-                dto.getName(),
-                dto.getOpeningDate(),
-                dto.getClosingDate(),
+                bankCreateDto.getName(),
+                bankCreateDto.getOpeningDate(),
+                bankCreateDto.getClosingDate(),
                 bankType,
                 user
         );

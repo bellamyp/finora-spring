@@ -8,7 +8,6 @@ import com.bellamyphan.finora_spring.dto.TransactionResponseDto;
 import com.bellamyphan.finora_spring.entity.*;
 import com.bellamyphan.finora_spring.repository.*;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -142,7 +141,7 @@ public class TransactionGroupService {
     // ============================================================
     @Transactional
     public String createTransactionGroup(TransactionGroupCreateDto dto) {
-        TransactionGroup group = saveGroupWithRetry(new TransactionGroup());
+        TransactionGroup group = saveNewGroup(new TransactionGroup());
 
         Brand brand = brandRepository.findById(dto.getBrandId())
                 .orElseThrow(() -> new RuntimeException("Brand not found: " + dto.getBrandId()));
@@ -166,7 +165,7 @@ public class TransactionGroupService {
             tx.setBrand(brand);
             tx.setType(type);
 
-            Transaction savedTx = saveTransactionWithRetry(tx);
+            Transaction savedTx = saveNewTransaction(tx);
             savePendingTransaction(savedTx);
         }
 
@@ -215,24 +214,16 @@ public class TransactionGroupService {
         return txDto;
     }
 
-    private TransactionGroup saveGroupWithRetry(TransactionGroup group) {
-        for (int i = 0; i < 10; i++) {
-            try {
-                group.setId(nanoIdService.generate());
-                return transactionGroupRepository.save(group);
-            } catch (DataIntegrityViolationException ignored) {}
-        }
-        throw new RuntimeException("Failed to generate unique TransactionGroup ID");
+    private TransactionGroup saveNewGroup(TransactionGroup group) {
+        String newId = nanoIdService.generateUniqueId(transactionGroupRepository);
+        group.setId(newId);
+        return transactionGroupRepository.save(group);
     }
 
-    private Transaction saveTransactionWithRetry(Transaction tx) {
-        for (int i = 0; i < 10; i++) {
-            try {
-                tx.setId(nanoIdService.generate());
-                return transactionRepository.save(tx);
-            } catch (DataIntegrityViolationException ignored) {}
-        }
-        throw new RuntimeException("Failed to generate unique Transaction ID");
+    private Transaction saveNewTransaction(Transaction tx) {
+        String newId = nanoIdService.generateUniqueId(transactionRepository);
+        tx.setId(newId);
+        return transactionRepository.save(tx);
     }
 
     private PendingTransaction savePendingTransaction(Transaction tx) {
@@ -268,7 +259,7 @@ public class TransactionGroupService {
 
             Transaction savedTx = opt.isPresent()
                     ? transactionRepository.save(tx)
-                    : saveTransactionWithRetry(tx);
+                    : saveNewTransaction(tx);
 
             updatePendingStatus(savedTx, txDto.isPosted());
         }

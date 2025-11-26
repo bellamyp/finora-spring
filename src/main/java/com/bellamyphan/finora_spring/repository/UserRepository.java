@@ -8,12 +8,9 @@ import java.util.Optional;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, String> {
-    // JpaRepository provides basic CRUD operations
-    // Additional custom queries can be defined here if needed
-
     // Find user by email (used for login/authentication)
-    Optional<User> findByEmail(String email);
+    Optional<User> findByEmailIgnoreCase(String email);
 
     // Check if a user exists by email
-    boolean existsByEmail(String email);
+    boolean existsByEmailIgnoreCase(String email);
 }
