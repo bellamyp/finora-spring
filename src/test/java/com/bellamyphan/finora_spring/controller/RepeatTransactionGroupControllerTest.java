@@ -41,10 +41,9 @@ class RepeatTransactionGroupControllerTest {
     private User mockUser;
     private TransactionGroup mockGroup;
 
-    // Helper method to return a transaction object with ID
-    private Transaction mockTxn(String id) {
+    private Transaction mockTxn() {
         Transaction t = new Transaction();
-        t.setId(id);
+        t.setId("T1");
         return t;
     }
 
@@ -56,7 +55,6 @@ class RepeatTransactionGroupControllerTest {
         mockGroup = new TransactionGroup();
         mockGroup.setId("G1");
 
-        // Mock authentication context
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken("user123", null)
         );
@@ -74,7 +72,7 @@ class RepeatTransactionGroupControllerTest {
 
         ResponseEntity<?> response = controller.isRepeat("G1");
 
-        assertEquals(403, response.getStatusCodeValue());
+        assertEquals(403, response.getStatusCode().value());
         assertEquals("You are not allowed to access this group's repeat status", response.getBody());
     }
 
@@ -83,18 +81,18 @@ class RepeatTransactionGroupControllerTest {
         when(userService.findById("user123")).thenReturn(Optional.of(mockUser));
         when(groupService.fetchTransactionGroup("G1")).thenReturn(mockGroup);
         when(groupService.getUserTransactionsForGroup(mockGroup, mockUser))
-                .thenReturn(List.of(mockTxn("T1")));
+                .thenReturn(List.of(mockTxn()));
 
         when(repeatService.exists("G1")).thenReturn(true);
 
         ResponseEntity<?> response = controller.isRepeat("G1");
 
-        assertEquals(200, response.getStatusCodeValue());
+        assertEquals(200, response.getStatusCode().value());
         assertEquals(true, response.getBody());
     }
 
     // ---------------------------------------------------------
-    // POST /{groupId} markAsRepeat
+    // POST /{groupId}
     // ---------------------------------------------------------
 
     @Test
@@ -105,7 +103,7 @@ class RepeatTransactionGroupControllerTest {
 
         ResponseEntity<?> response = controller.markAsRepeat("G1");
 
-        assertEquals(403, response.getStatusCodeValue());
+        assertEquals(403, response.getStatusCode().value());
         assertEquals("You are not allowed to mark this empty group as repeat", response.getBody());
     }
 
@@ -114,14 +112,14 @@ class RepeatTransactionGroupControllerTest {
         when(userService.findById("user123")).thenReturn(Optional.of(mockUser));
         when(groupService.fetchTransactionGroup("G1")).thenReturn(mockGroup);
         when(groupService.getUserTransactionsForGroup(mockGroup, mockUser))
-                .thenReturn(List.of(mockTxn("T1")));
+                .thenReturn(List.of(mockTxn()));
 
         RepeatTransactionGroup repeat = new RepeatTransactionGroup(mockGroup);
         when(repeatService.markAsRepeat(mockGroup)).thenReturn(repeat);
 
         ResponseEntity<?> response = controller.markAsRepeat("G1");
 
-        assertEquals(200, response.getStatusCodeValue());
+        assertEquals(200, response.getStatusCode().value());
         assertSame(repeat, response.getBody());
     }
 
@@ -137,7 +135,7 @@ class RepeatTransactionGroupControllerTest {
 
         ResponseEntity<?> response = controller.removeRepeat("G1");
 
-        assertEquals(403, response.getStatusCodeValue());
+        assertEquals(403, response.getStatusCode().value());
         assertEquals("You are not allowed to remove repeat status from this group", response.getBody());
     }
 
@@ -146,13 +144,13 @@ class RepeatTransactionGroupControllerTest {
         when(userService.findById("user123")).thenReturn(Optional.of(mockUser));
         when(groupService.fetchTransactionGroup("G1")).thenReturn(mockGroup);
         when(groupService.getUserTransactionsForGroup(mockGroup, mockUser))
-                .thenReturn(List.of(mockTxn("T1")));
+                .thenReturn(List.of(mockTxn()));
 
         when(repeatService.exists("G1")).thenReturn(false);
 
         ResponseEntity<?> response = controller.removeRepeat("G1");
 
-        assertEquals(404, response.getStatusCodeValue());
+        assertEquals(404, response.getStatusCode().value());
         assertEquals("Group is not marked as repeat", response.getBody());
     }
 
@@ -161,13 +159,13 @@ class RepeatTransactionGroupControllerTest {
         when(userService.findById("user123")).thenReturn(Optional.of(mockUser));
         when(groupService.fetchTransactionGroup("G1")).thenReturn(mockGroup);
         when(groupService.getUserTransactionsForGroup(mockGroup, mockUser))
-                .thenReturn(List.of(mockTxn("T1")));
+                .thenReturn(List.of(mockTxn()));
 
         when(repeatService.exists("G1")).thenReturn(true);
 
         ResponseEntity<?> response = controller.removeRepeat("G1");
 
-        assertEquals(200, response.getStatusCodeValue());
+        assertEquals(200, response.getStatusCode().value());
         assertEquals("Repeat status removed successfully", response.getBody());
         verify(repeatService).removeRepeat(mockGroup);
     }
