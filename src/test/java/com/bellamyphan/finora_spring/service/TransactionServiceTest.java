@@ -28,9 +28,6 @@ class TransactionServiceTest {
     @Mock
     private PendingTransactionRepository pendingTransactionRepository;
 
-    @Mock
-    private TransactionRepository transactionRepository;
-
     @InjectMocks
     private TransactionService transactionService;
 

@@ -26,7 +26,6 @@ class TransactionGroupServiceTest {
     @Mock TransactionGroupRepository transactionGroupRepository;
     @Mock TransactionRepository transactionRepository;
     @Mock PendingTransactionRepository pendingTransactionRepository;
-    @Mock RepeatTransactionGroupRepository repeatTransactionGroupRepository;
     @Mock TransactionTypeRepository transactionTypeRepository;
     @Mock BrandRepository brandRepository;
     @Mock LocationRepository locationRepository;

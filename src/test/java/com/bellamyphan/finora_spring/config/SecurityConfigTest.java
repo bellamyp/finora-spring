@@ -10,9 +10,8 @@ import static org.mockito.Mockito.*;
 class SecurityConfigTest {
 
     @Test
-    void securityFilterChain_ConfiguresJwtFilter() throws Exception {
+    void securityFilterChain_ConfiguresJwtFilter() {
         JwtAuthenticationFilter jwtFilter = mock(JwtAuthenticationFilter.class);
-        SecurityConfig config = new SecurityConfig(jwtFilter);
 
         // Instead of calling .build(), just check the filter is injected
         assertThat(jwtFilter).isNotNull();

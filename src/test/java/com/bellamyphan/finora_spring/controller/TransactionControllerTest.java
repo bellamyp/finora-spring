@@ -62,6 +62,7 @@ class TransactionControllerTest {
 
         assertNotNull(response);
         assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
         assertEquals(2, response.getBody().size());
         assertEquals("tx1", response.getBody().get(0).getId());
 
@@ -93,6 +94,7 @@ class TransactionControllerTest {
 
         assertNotNull(response);
         assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
         assertTrue(response.getBody().isEmpty());
 
         verify(transactionService, times(1))
@@ -119,6 +121,7 @@ class TransactionControllerTest {
 
         assertNotNull(response);
         assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
         assertEquals(1, response.getBody().size());
         assertEquals("p1", response.getBody().get(0).getId());
 
