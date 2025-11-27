@@ -8,17 +8,15 @@ import com.bellamyphan.finora_spring.entity.BankType;
 import com.bellamyphan.finora_spring.entity.User;
 import com.bellamyphan.finora_spring.repository.BankTypeRepository;
 import com.bellamyphan.finora_spring.service.BankService;
-import com.bellamyphan.finora_spring.service.UserService;
+import com.bellamyphan.finora_spring.service.JwtService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.*;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -41,27 +39,21 @@ class BankControllerTest {
     private BankService bankService;
 
     @Mock
-    private UserService userService;
+    private JwtService jwtService;
 
-    @Mock
-    private SecurityContext securityContext;
-
-    @Mock
-    private Authentication authentication;
+    private User mockUser;
 
     @BeforeEach
-    void setupSecurityContext() {
-        SecurityContextHolder.setContext(securityContext);
-        when(securityContext.getAuthentication()).thenReturn(authentication);
-        when(authentication.getName()).thenReturn("user1");
+    void setup() {
+        mockUser = new User();
+        mockUser.setId("user1");
+        mockUser.setEmail("user@example.com");
+
+        when(jwtService.getCurrentUser()).thenReturn(mockUser);
     }
 
     @Test
     void getBanksByUser_returnsBankListWithBalance() {
-        User user = new User();
-        user.setId("user1");
-        user.setEmail("user@example.com");
-
         BankType bankType = new BankType();
         bankType.setType(BankTypeEnum.CHECKING);
 
@@ -69,10 +61,9 @@ class BankControllerTest {
         bank.setId("bank123");
         bank.setName("Checking Bank");
         bank.setType(bankType);
-        bank.setUser(user);
+        bank.setUser(mockUser);
 
-        when(userService.findById("user1")).thenReturn(Optional.of(user));
-        when(bankService.findBanksByUser(user)).thenReturn(List.of(bank));
+        when(bankService.findBanksByUser(mockUser)).thenReturn(List.of(bank));
         when(bankService.calculateBalance("bank123")).thenReturn(BigDecimal.valueOf(1000.50));
 
         List<BankDto> result = controller.getBanksByUser();
@@ -88,10 +79,6 @@ class BankControllerTest {
 
     @Test
     void getBankById_returnsBankDetails() {
-        User user = new User();
-        user.setId("user1");
-        user.setEmail("user@example.com");
-
         BankType bankType = new BankType();
         bankType.setType(BankTypeEnum.SAVINGS);
 
@@ -99,9 +86,8 @@ class BankControllerTest {
         bank.setId("bank123");
         bank.setName("Savings Bank");
         bank.setType(bankType);
-        bank.setUser(user);
+        bank.setUser(mockUser);
 
-        when(userService.findById("user1")).thenReturn(Optional.of(user));
         when(bankService.findBankById("bank123")).thenReturn(bank);
         when(bankService.calculateBalance("bank123")).thenReturn(BigDecimal.valueOf(500.75));
 
@@ -119,9 +105,6 @@ class BankControllerTest {
 
     @Test
     void getBankById_forbiddenIfUserMismatch() {
-        User user = new User();
-        user.setId("user1");
-
         User otherUser = new User();
         otherUser.setId("user2");
 
@@ -129,7 +112,6 @@ class BankControllerTest {
         bank.setId("bank123");
         bank.setUser(otherUser);
 
-        when(userService.findById("user1")).thenReturn(Optional.of(user));
         when(bankService.findBankById("bank123")).thenReturn(bank);
 
         ResponseEntity<BankDto> response = controller.getBankById("bank123");
@@ -138,10 +120,6 @@ class BankControllerTest {
 
     @Test
     void createNewBank_success() {
-        User user = new User();
-        user.setId("user1");
-        user.setEmail("user@example.com");
-
         BankType bankType = new BankType();
         bankType.setType(BankTypeEnum.CHECKING);
 
@@ -154,9 +132,8 @@ class BankControllerTest {
         savedBank.setId("bank999");
         savedBank.setName("New Bank");
         savedBank.setType(bankType);
-        savedBank.setUser(user);
+        savedBank.setUser(mockUser);
 
-        when(userService.findById("user1")).thenReturn(Optional.of(user));
         when(bankTypeRepository.findByType(BankTypeEnum.CHECKING)).thenReturn(Optional.of(bankType));
         when(bankService.createBank(any(Bank.class))).thenReturn(savedBank);
 
@@ -173,16 +150,11 @@ class BankControllerTest {
 
     @Test
     void createNewBank_throwsIfBankTypeNotFound() {
-        User user = new User();
-        user.setId("user1");
-        when(userService.findById("user1")).thenReturn(Optional.of(user));
-
         BankCreateDto createDto = new BankCreateDto();
         createDto.setName("Bank X");
-        createDto.setType(BankTypeEnum.CHECKING); // use a valid enum
+        createDto.setType(BankTypeEnum.CHECKING);
         createDto.setOpeningDate(LocalDate.now());
 
-        // Mock repository to return empty to simulate "not found"
         when(bankTypeRepository.findByType(BankTypeEnum.CHECKING)).thenReturn(Optional.empty());
 
         RuntimeException exception = assertThrows(RuntimeException.class,
@@ -190,5 +162,4 @@ class BankControllerTest {
 
         assertEquals("Bank type not found: CHECKING", exception.getMessage());
     }
-
 }

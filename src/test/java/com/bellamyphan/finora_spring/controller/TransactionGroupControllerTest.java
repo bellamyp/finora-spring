@@ -3,9 +3,8 @@ package com.bellamyphan.finora_spring.controller;
 import com.bellamyphan.finora_spring.dto.TransactionGroupCreateDto;
 import com.bellamyphan.finora_spring.dto.TransactionGroupResponseDto;
 import com.bellamyphan.finora_spring.entity.User;
+import com.bellamyphan.finora_spring.service.JwtService;
 import com.bellamyphan.finora_spring.service.TransactionGroupService;
-import com.bellamyphan.finora_spring.service.UserService;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -14,9 +13,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.List;
 import java.util.Map;
@@ -32,16 +28,10 @@ class TransactionGroupControllerTest {
     private TransactionGroupService transactionGroupService;
 
     @Mock
-    private UserService userService;
+    private JwtService jwtService;
 
     @InjectMocks
     private TransactionGroupController controller;
-
-    @Mock
-    private SecurityContext securityContext;
-
-    @Mock
-    private Authentication authentication;
 
     private User mockUser;
 
@@ -50,10 +40,7 @@ class TransactionGroupControllerTest {
         mockUser = new User();
         mockUser.setId("user123");
 
-        SecurityContextHolder.setContext(securityContext);
-        lenient().when(securityContext.getAuthentication()).thenReturn(authentication);
-        lenient().when(authentication.getName()).thenReturn(mockUser.getId());
-        lenient().when(userService.findById(mockUser.getId())).thenReturn(Optional.of(mockUser));
+        lenient().when(jwtService.getCurrentUser()).thenReturn(mockUser);
     }
 
     @Test
@@ -114,6 +101,24 @@ class TransactionGroupControllerTest {
     }
 
     @Test
+    void getGroupsForCurrentUser_ReturnsRepeatGroups() {
+        TransactionGroupResponseDto groupDto = new TransactionGroupResponseDto();
+        groupDto.setId("grpRepeat");
+
+        when(transactionGroupService.getRepeatTransactionGroupsForUser(mockUser))
+                .thenReturn(List.of(groupDto));
+
+        ResponseEntity<List<TransactionGroupResponseDto>> response =
+                controller.getGroupsForCurrentUser("repeat");
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).containsExactly(groupDto);
+
+        verify(transactionGroupService, times(1)).getRepeatTransactionGroupsForUser(mockUser);
+        verifyNoMoreInteractions(transactionGroupService);
+    }
+
+    @Test
     void getGroupsForCurrentUser_InvalidStatus_ThrowsException() {
         try {
             controller.getGroupsForCurrentUser("invalid");
@@ -152,7 +157,7 @@ class TransactionGroupControllerTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         Map<String, Object> body = (Map<String, Object>) response.getBody();
-        Assertions.assertNotNull(body);
+        assertThat(body).isNotNull();
         assertThat(body.get("success")).isEqualTo(true);
         assertThat(body.get("message")).isEqualTo("Transaction group updated successfully");
 
@@ -164,11 +169,12 @@ class TransactionGroupControllerTest {
         TransactionGroupResponseDto dto = new TransactionGroupResponseDto();
         dto.setId(null);
 
+        // No need to stub jwtService.getCurrentUser(), controller returns early
         ResponseEntity<?> response = controller.updateTransactionGroup(dto);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         Map<String, Object> body = (Map<String, Object>) response.getBody();
-        Assertions.assertNotNull(body);
+        assertThat(body).isNotNull();
         assertThat(body.get("success")).isEqualTo(false);
         assertThat(body.get("message")).isEqualTo("Group ID must be provided for update");
 
@@ -187,7 +193,7 @@ class TransactionGroupControllerTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
         Map<String, Object> body = (Map<String, Object>) response.getBody();
-        Assertions.assertNotNull(body);
+        assertThat(body).isNotNull();
         assertThat(body.get("success")).isEqualTo(false);
         assertThat(((String) body.get("message"))).contains("Failed to update transaction group: DB failure");
 

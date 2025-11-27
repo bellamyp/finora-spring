@@ -3,19 +3,18 @@ package com.bellamyphan.finora_spring.service;
 import com.bellamyphan.finora_spring.dto.BrandCreateDto;
 import com.bellamyphan.finora_spring.dto.BrandDto;
 import com.bellamyphan.finora_spring.entity.Brand;
-import com.bellamyphan.finora_spring.entity.User;
 import com.bellamyphan.finora_spring.repository.BrandRepository;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.dao.DataIntegrityViolationException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
+
 @ExtendWith(MockitoExtension.class)
 class BrandServiceTest {
 
@@ -28,78 +27,77 @@ class BrandServiceTest {
     @InjectMocks
     private BrandService brandService;
 
-    private final User mockUser = new User(); // mock user for all brands
-
-    @BeforeEach
-    void setup() {
-        mockUser.setId("user123");
-        mockUser.setName("Test User");
-        mockUser.setEmail("test@example.com");
-    }
-
-    // -------------------------
-    // Test: createBrand success
-    // -------------------------
+    // ------------------------------------------------------------
+    // SUCCESS: createBrand
+    // ------------------------------------------------------------
     @Test
     void createBrand_shouldCreateSuccessfully() {
-        BrandCreateDto request = new BrandCreateDto("Nike", "Houston");
-        Brand savedBrand = new Brand(mockUser, "Nike", "Houston");
+        BrandCreateDto request = new BrandCreateDto(" Nike ", " HTTP://example.com/Brand ");
 
-        when(brandRepository.existsByNameIgnoreCaseAndLocationIgnoreCaseAndUser(
-                "Nike", "Houston", mockUser))
-                .thenReturn(false);
-        when(nanoIdService.generate()).thenReturn("id123");
-        when(brandRepository.save(any(Brand.class))).thenReturn(savedBrand);
+        // Normalize results
+        String normalizedName = "Nike";
+        String normalizedUrl = "http://example.com/brand";
 
-        BrandDto result = brandService.createBrand(request, mockUser);
+        when(brandRepository.existsByNameIgnoreCase(normalizedName)).thenReturn(false);
+        when(brandRepository.existsByUrlIgnoreCase(normalizedUrl)).thenReturn(false);
 
-        assertThat(result.getName()).isEqualTo("Nike");
-        assertThat(result.getLocation()).isEqualTo("Houston");
+        when(nanoIdService.generateUniqueId(brandRepository)).thenReturn("id123");
 
-        verify(brandRepository).save(any(Brand.class));
+        Brand saved = new Brand(normalizedName, normalizedUrl);
+        saved.setId("id123");
+        when(brandRepository.save(any(Brand.class))).thenReturn(saved);
+
+        BrandDto result = brandService.createBrand(request);
+
+        assertThat(result.getId()).isEqualTo("id123");
+        assertThat(result.getName()).isEqualTo(normalizedName);
+        assertThat(result.getUrl()).isEqualTo(normalizedUrl);
+
+        // capture Brand being saved
+        ArgumentCaptor<Brand> brandCaptor = ArgumentCaptor.forClass(Brand.class);
+        verify(brandRepository).save(brandCaptor.capture());
+
+        Brand captured = brandCaptor.getValue();
+        assertThat(captured.getName()).isEqualTo(normalizedName);
+        assertThat(captured.getUrl()).isEqualTo(normalizedUrl);
     }
 
-    // -------------------------
-    // Test: createBrand duplicate -> exception
-    // -------------------------
+    // ------------------------------------------------------------
+    // FAIL: duplicate name
+    // ------------------------------------------------------------
     @Test
-    void createBrand_duplicate_shouldThrow() {
-        BrandCreateDto request = new BrandCreateDto("Nike", "Houston");
+    void createBrand_duplicateName_shouldThrow() {
+        BrandCreateDto request = new BrandCreateDto("Nike", "https://example.com");
 
-        when(brandRepository.existsByNameIgnoreCaseAndLocationIgnoreCaseAndUser(
-                "Nike", "Houston", mockUser))
+        when(brandRepository.existsByNameIgnoreCase("Nike"))
                 .thenReturn(true);
 
-        IllegalArgumentException exception = assertThrows(
+        IllegalArgumentException ex = assertThrows(
                 IllegalArgumentException.class,
-                () -> brandService.createBrand(request, mockUser)
+                () -> brandService.createBrand(request)
         );
 
-        assertThat(exception.getMessage())
-                .contains("Brand 'Nike' at location 'Houston' already exists");
+        assertThat(ex.getMessage()).contains("Brand name already exists");
+        verify(brandRepository, never()).save(any());
     }
 
-    // -------------------------
-    // Test: createBrand collision retry -> exception
-    // -------------------------
+    // ------------------------------------------------------------
+    // FAIL: duplicate URL
+    // ------------------------------------------------------------
     @Test
-    void createBrand_collisionRetry_shouldThrow() {
-        BrandCreateDto request = new BrandCreateDto("Nike", "Houston");
+    void createBrand_duplicateUrl_shouldThrow() {
+        BrandCreateDto request = new BrandCreateDto("Nike", "https://example.com");
 
-        when(brandRepository.existsByNameIgnoreCaseAndLocationIgnoreCaseAndUser(
-                "Nike", "Houston", mockUser))
-                .thenReturn(false);
-        when(nanoIdService.generate()).thenReturn("id123");
-        when(brandRepository.save(any(Brand.class))).thenThrow(DataIntegrityViolationException.class);
+        when(brandRepository.existsByNameIgnoreCase("Nike")).thenReturn(false);
+        when(brandRepository.existsByUrlIgnoreCase("https://example.com"))
+                .thenReturn(true);
 
-        RuntimeException exception = assertThrows(
-                RuntimeException.class,
-                () -> brandService.createBrand(request, mockUser)
+        IllegalArgumentException ex = assertThrows(
+                IllegalArgumentException.class,
+                () -> brandService.createBrand(request)
         );
 
-        assertThat(exception.getMessage())
-                .contains("Failed to generate unique Brand ID after 10 attempts");
-
-        verify(brandRepository, times(10)).save(any(Brand.class));
+        assertThat(ex.getMessage()).contains("Brand URL already exists");
+        verify(brandRepository, never()).save(any());
     }
 }
