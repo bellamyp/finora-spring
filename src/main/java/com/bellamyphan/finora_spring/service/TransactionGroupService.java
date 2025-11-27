@@ -300,6 +300,9 @@ public class TransactionGroupService {
         Brand brand = brandRepository.findById(txDto.getBrandId())
                 .orElseThrow(() -> new RuntimeException("Brand not found: " + txDto.getBrandId()));
 
+        Location location = locationRepository.findById(txDto.getLocationId())
+                .orElseThrow(() -> new RuntimeException("Location not found: " + txDto.getLocationId()));
+
         Bank bank = bankRepository.findById(txDto.getBankId())
                 .orElseThrow(() -> new RuntimeException("Bank not found: " + txDto.getBankId()));
 
@@ -311,6 +314,7 @@ public class TransactionGroupService {
         tx.setAmount(txDto.getAmount());
         tx.setNotes(txDto.getNotes());
         tx.setBrand(brand);
+        tx.setLocation(location);
         tx.setBank(bank);
         tx.setType(type);
     }
