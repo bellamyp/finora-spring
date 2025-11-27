@@ -27,6 +27,7 @@ public class TransactionGroupService {
     private final RepeatTransactionGroupRepository repeatTransactionGroupRepository;
     private final TransactionTypeRepository transactionTypeRepository;
     private final BrandRepository brandRepository;
+    private final LocationRepository locationRepository;
     private final BankRepository bankRepository;
 
     // ============================================================
@@ -141,28 +142,66 @@ public class TransactionGroupService {
     // ============================================================
     @Transactional
     public String createTransactionGroup(TransactionGroupCreateDto dto) {
+        // Ensure at least 1 transaction
+        if (dto.getTransactions() == null || dto.getTransactions().isEmpty()) {
+            throw new IllegalArgumentException("Cannot create a group without at least 1 transaction");
+        }
+
+        // Ensure each transaction has a bank
+        for (TransactionCreateDto row : dto.getTransactions()) {
+            if (row.getBankId() == null || row.getBankId().isEmpty()) {
+                throw new IllegalArgumentException("Each transaction must have a bank selected");
+            }
+        }
+
+        // Create the group
         TransactionGroup group = saveNewGroup(new TransactionGroup());
 
-        Brand brand = brandRepository.findById(dto.getBrandId())
-                .orElseThrow(() -> new RuntimeException("Brand not found: " + dto.getBrandId()));
-
-        TransactionType type = transactionTypeRepository
-                .findByType(TransactionTypeEnum.fromName(dto.getTypeId()))
-                .orElseThrow(() -> new RuntimeException("Transaction type not found: " + dto.getTypeId()));
-
-        LocalDate date = LocalDate.parse(dto.getDate());
-
         for (TransactionCreateDto row : dto.getTransactions()) {
-            Bank bank = bankRepository.findById(row.getBankId())
-                    .orElseThrow(() -> new RuntimeException("Bank not found: " + row.getBankId()));
 
+            // Parse date per transaction
+            LocalDate date = row.getDate() == null || row.getDate().isEmpty()
+                    ? null
+                    : LocalDate.parse(row.getDate());
+
+            // Fetch bank if provided
+            Bank bank = null;
+            if (row.getBankId() != null && !row.getBankId().isEmpty()) {
+                bank = bankRepository.findById(row.getBankId())
+                        .orElseThrow(() -> new RuntimeException("Bank not found: " + row.getBankId()));
+            }
+
+            // Fetch brand if provided
+            Brand brand = null;
+            if (row.getBrandId() != null && !row.getBrandId().isEmpty()) {
+                brand = brandRepository.findById(row.getBrandId())
+                        .orElseThrow(() -> new RuntimeException("Brand not found: " + row.getBrandId()));
+            }
+
+            // Fetch location if provided
+            Location location = null;
+            if (row.getLocationId() != null && !row.getLocationId().isEmpty()) {
+                location = locationRepository.findById(row.getLocationId())
+                        .orElseThrow(() -> new RuntimeException("Location not found: " + row.getLocationId()));
+            }
+
+            // Fetch transaction type
+            TransactionType type = null;
+            if (row.getTypeId() != null && !row.getTypeId().isEmpty()) {
+                type = transactionTypeRepository
+                        .findByType(TransactionTypeEnum.fromName(row.getTypeId()))
+                        .orElseThrow(() -> new RuntimeException("Transaction type not found: " + row.getTypeId()));
+            }
+
+            // Create transaction entity
             Transaction tx = new Transaction();
             tx.setGroup(group);
             tx.setDate(date);
-            tx.setAmount(row.getAmount() == null ? BigDecimal.ZERO : BigDecimal.valueOf(row.getAmount()));
+            tx.setAmount(row.getAmount() == null ? BigDecimal.ZERO : row.getAmount());
             tx.setNotes(row.getNotes());
             tx.setBank(bank);
             tx.setBrand(brand);
+            tx.setLocation(location);
             tx.setType(type);
 
             Transaction savedTx = saveNewTransaction(tx);
@@ -202,16 +241,8 @@ public class TransactionGroupService {
     // PRIVATE HELPERS
     // ============================================================
     private TransactionResponseDto toDto(Transaction tx) {
-        TransactionResponseDto txDto = new TransactionResponseDto();
-        txDto.setId(tx.getId());
-        txDto.setDate(tx.getDate().toString());
-        txDto.setAmount(tx.getAmount());
-        txDto.setNotes(tx.getNotes());
-        txDto.setBankId(tx.getBank().getId());
-        txDto.setBrandId(tx.getBrand().getId());
-        txDto.setTypeId(tx.getType().getType().name());
-        txDto.setPosted(!pendingTransactionRepository.existsByTransactionId(tx.getId()));
-        return txDto;
+        boolean posted = !pendingTransactionRepository.existsByTransactionId(tx.getId());
+        return TransactionResponseDto.fromEntity(tx, posted);
     }
 
     private TransactionGroup saveNewGroup(TransactionGroup group) {

@@ -109,21 +109,8 @@ public class TransactionService {
     // ============================================================
     //   PRIVATE HELPERS
     // ============================================================
-
     private TransactionResponseDto toDto(Transaction tx) {
-        boolean isPending = pendingTransactionRepository.existsByTransactionId(tx.getId());
-
-        TransactionResponseDto dto = new TransactionResponseDto();
-        dto.setId(tx.getId());
-        dto.setGroupId(tx.getGroup() != null ? tx.getGroup().getId() : null);
-        dto.setDate(tx.getDate().toString());
-        dto.setAmount(tx.getAmount());
-        dto.setNotes(tx.getNotes());
-        dto.setBankId(tx.getBank().getId());
-        dto.setBrandId(tx.getBrand().getId());
-        dto.setTypeId(tx.getType().getType().name());
-        dto.setPosted(!isPending); // posted = true if NOT pending
-
-        return dto;
+        boolean posted = !pendingTransactionRepository.existsByTransactionId(tx.getId());
+        return TransactionResponseDto.fromEntity(tx, posted);
     }
 }
