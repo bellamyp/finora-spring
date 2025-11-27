@@ -35,7 +35,7 @@ public class BrandService {
         if (brandRepository.existsByNameIgnoreCase(normalizedName)) {
             throw new IllegalArgumentException("Brand name already exists: '" + normalizedName + "'");
         }
-        if (urlNormalized != null && brandRepository.existsByUrlIgnoreCase(urlNormalized)) {
+        if (urlNormalized != null && !urlNormalized.isBlank() && brandRepository.existsByUrlIgnoreCase(urlNormalized)) {
             throw new IllegalArgumentException("Brand URL already exists: '" + urlNormalized + "'");
         }
 
