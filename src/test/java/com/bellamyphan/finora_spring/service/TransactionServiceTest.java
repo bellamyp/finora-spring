@@ -5,7 +5,6 @@ import com.bellamyphan.finora_spring.dto.TransactionResponseDto;
 import com.bellamyphan.finora_spring.dto.TransactionSearchDto;
 import com.bellamyphan.finora_spring.entity.*;
 import com.bellamyphan.finora_spring.repository.PendingTransactionRepository;
-import com.bellamyphan.finora_spring.repository.TransactionRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 import jakarta.persistence.criteria.*;
