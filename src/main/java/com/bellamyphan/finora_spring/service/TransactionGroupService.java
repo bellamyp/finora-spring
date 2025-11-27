@@ -297,25 +297,45 @@ public class TransactionGroupService {
     }
 
     private void resolveLookupsAndSetFields(Transaction tx, TransactionResponseDto txDto) {
-        Brand brand = brandRepository.findById(txDto.getBrandId())
-                .orElseThrow(() -> new RuntimeException("Brand not found: " + txDto.getBrandId()));
-
-        Location location = locationRepository.findById(txDto.getLocationId())
-                .orElseThrow(() -> new RuntimeException("Location not found: " + txDto.getLocationId()));
-
+        // Bank is required
         Bank bank = bankRepository.findById(txDto.getBankId())
                 .orElseThrow(() -> new RuntimeException("Bank not found: " + txDto.getBankId()));
 
-        TransactionType type = transactionTypeRepository
-                .findByType(TransactionTypeEnum.fromName(txDto.getTypeId()))
-                .orElseThrow(() -> new RuntimeException("Transaction type not found: " + txDto.getTypeId()));
+        // Optional fields (can be null)
+        Brand brand = null;
+        if (txDto.getBrandId() != null && !txDto.getBrandId().isBlank()) {
+            brand = brandRepository.findById(txDto.getBrandId())
+                    .orElseThrow(() -> new RuntimeException("Brand not found: " + txDto.getBrandId()));
+        }
 
-        tx.setDate(LocalDate.parse(txDto.getDate()));
+        Location location = null;
+        if (txDto.getLocationId() != null && !txDto.getLocationId().isBlank()) {
+            location = locationRepository.findById(txDto.getLocationId())
+                    .orElseThrow(() -> new RuntimeException("Location not found: " + txDto.getLocationId()));
+        }
+
+        TransactionType type = null;
+        if (txDto.getTypeId() != null && !txDto.getTypeId().isBlank()) {
+            type = transactionTypeRepository
+                    .findByType(TransactionTypeEnum.fromName(txDto.getTypeId()))
+                    .orElseThrow(() -> new RuntimeException("Transaction type not found: " + txDto.getTypeId()));
+        }
+
+        // Date (optional, null/blank allowed)
+        if (txDto.getDate() != null && !txDto.getDate().isBlank()) {
+            tx.setDate(LocalDate.parse(txDto.getDate()));
+        } else {
+            tx.setDate(null);
+        }
+
+        // Amount and notes can be null
         tx.setAmount(txDto.getAmount());
         tx.setNotes(txDto.getNotes());
+
+        // Set resolved fields
+        tx.setBank(bank);
         tx.setBrand(brand);
         tx.setLocation(location);
-        tx.setBank(bank);
         tx.setType(type);
     }
 
