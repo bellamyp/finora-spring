@@ -53,6 +53,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/transactions/**",
                                 "/api/banks/**",
                                 "/api/brands/**",
+                                "/api/locations/**",
                                 "/api/transaction-groups/**",
                                 "/api/repeat-groups/**")
                         .hasRole("USER")
