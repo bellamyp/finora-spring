@@ -77,6 +77,11 @@ public class TransactionService {
             predicate = cb.and(predicate, cb.equal(transaction.get("brand").get("id"), searchDto.getBrandId()));
         }
 
+        // --- Location ---
+        if (StringUtils.hasText(searchDto.getLocationId())) {
+            predicate = cb.and(predicate, cb.equal(transaction.get("location").get("id"), searchDto.getLocationId()));
+        }
+
         // --- Type ---
         if (StringUtils.hasText(searchDto.getTypeId())) {
             predicate = cb.and(predicate,
