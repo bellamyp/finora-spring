@@ -4,9 +4,9 @@ import com.bellamyphan.finora_spring.entity.RepeatTransactionGroup;
 import com.bellamyphan.finora_spring.entity.Transaction;
 import com.bellamyphan.finora_spring.entity.TransactionGroup;
 import com.bellamyphan.finora_spring.entity.User;
+import com.bellamyphan.finora_spring.service.JwtService;
 import com.bellamyphan.finora_spring.service.RepeatTransactionGroupService;
 import com.bellamyphan.finora_spring.service.TransactionGroupService;
-import com.bellamyphan.finora_spring.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -14,11 +14,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.List;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -33,7 +30,7 @@ class RepeatTransactionGroupControllerTest {
     private TransactionGroupService groupService;
 
     @Mock
-    private UserService userService;
+    private JwtService jwtService;
 
     @InjectMocks
     private RepeatTransactionGroupController controller;
@@ -54,10 +51,6 @@ class RepeatTransactionGroupControllerTest {
 
         mockGroup = new TransactionGroup();
         mockGroup.setId("G1");
-
-        SecurityContextHolder.getContext().setAuthentication(
-                new UsernamePasswordAuthenticationToken("user123", null)
-        );
     }
 
     // ---------------------------------------------------------
@@ -66,7 +59,7 @@ class RepeatTransactionGroupControllerTest {
 
     @Test
     void isRepeat_returnsForbidden_whenUserHasNoOwnership() {
-        when(userService.findById("user123")).thenReturn(Optional.of(mockUser));
+        when(jwtService.getCurrentUser()).thenReturn(mockUser);
         when(groupService.fetchTransactionGroup("G1")).thenReturn(mockGroup);
         when(groupService.getUserTransactionsForGroup(mockGroup, mockUser)).thenReturn(List.of());
 
@@ -78,7 +71,7 @@ class RepeatTransactionGroupControllerTest {
 
     @Test
     void isRepeat_returnsOk_whenUserOwnsGroup() {
-        when(userService.findById("user123")).thenReturn(Optional.of(mockUser));
+        when(jwtService.getCurrentUser()).thenReturn(mockUser);
         when(groupService.fetchTransactionGroup("G1")).thenReturn(mockGroup);
         when(groupService.getUserTransactionsForGroup(mockGroup, mockUser))
                 .thenReturn(List.of(mockTxn()));
@@ -97,7 +90,7 @@ class RepeatTransactionGroupControllerTest {
 
     @Test
     void markAsRepeat_returnsForbidden_whenNoOwnership() {
-        when(userService.findById("user123")).thenReturn(Optional.of(mockUser));
+        when(jwtService.getCurrentUser()).thenReturn(mockUser);
         when(groupService.fetchTransactionGroup("G1")).thenReturn(mockGroup);
         when(groupService.getUserTransactionsForGroup(mockGroup, mockUser)).thenReturn(List.of());
 
@@ -109,7 +102,7 @@ class RepeatTransactionGroupControllerTest {
 
     @Test
     void markAsRepeat_returnsOk_whenOwnershipValid() {
-        when(userService.findById("user123")).thenReturn(Optional.of(mockUser));
+        when(jwtService.getCurrentUser()).thenReturn(mockUser);
         when(groupService.fetchTransactionGroup("G1")).thenReturn(mockGroup);
         when(groupService.getUserTransactionsForGroup(mockGroup, mockUser))
                 .thenReturn(List.of(mockTxn()));
@@ -129,7 +122,7 @@ class RepeatTransactionGroupControllerTest {
 
     @Test
     void removeRepeat_returnsForbidden_whenNoOwnership() {
-        when(userService.findById("user123")).thenReturn(Optional.of(mockUser));
+        when(jwtService.getCurrentUser()).thenReturn(mockUser);
         when(groupService.fetchTransactionGroup("G1")).thenReturn(mockGroup);
         when(groupService.getUserTransactionsForGroup(mockGroup, mockUser)).thenReturn(List.of());
 
@@ -141,7 +134,7 @@ class RepeatTransactionGroupControllerTest {
 
     @Test
     void removeRepeat_returnsNotFound_whenNotExists() {
-        when(userService.findById("user123")).thenReturn(Optional.of(mockUser));
+        when(jwtService.getCurrentUser()).thenReturn(mockUser);
         when(groupService.fetchTransactionGroup("G1")).thenReturn(mockGroup);
         when(groupService.getUserTransactionsForGroup(mockGroup, mockUser))
                 .thenReturn(List.of(mockTxn()));
@@ -156,7 +149,7 @@ class RepeatTransactionGroupControllerTest {
 
     @Test
     void removeRepeat_returnsOk_whenExists() {
-        when(userService.findById("user123")).thenReturn(Optional.of(mockUser));
+        when(jwtService.getCurrentUser()).thenReturn(mockUser);
         when(groupService.fetchTransactionGroup("G1")).thenReturn(mockGroup);
         when(groupService.getUserTransactionsForGroup(mockGroup, mockUser))
                 .thenReturn(List.of(mockTxn()));

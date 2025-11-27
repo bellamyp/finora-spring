@@ -4,14 +4,13 @@ import com.bellamyphan.finora_spring.config.DefaultAccountProperties;
 import com.bellamyphan.finora_spring.constant.BankTypeEnum;
 import com.bellamyphan.finora_spring.constant.RoleEnum;
 import com.bellamyphan.finora_spring.constant.TransactionTypeEnum;
+import com.bellamyphan.finora_spring.dto.BrandCreateDto;
+import com.bellamyphan.finora_spring.dto.LocationCreateDto;
 import com.bellamyphan.finora_spring.dto.UserRequestDto;
 import com.bellamyphan.finora_spring.entity.BankType;
 import com.bellamyphan.finora_spring.entity.Role;
 import com.bellamyphan.finora_spring.entity.TransactionType;
-import com.bellamyphan.finora_spring.service.BankTypeService;
-import com.bellamyphan.finora_spring.service.RoleService;
-import com.bellamyphan.finora_spring.service.TransactionTypeService;
-import com.bellamyphan.finora_spring.service.UserService;
+import com.bellamyphan.finora_spring.service.*;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,12 +28,16 @@ public class DataInitializerRunner implements CommandLineRunner {
     private final BankTypeService bankTypeService;
     private final UserService userService;
     private final TransactionTypeService transactionTypeService;
+    private final LocationService locationService;
+    private final BrandService brandService;
 
     @Override
     public void run(String... args) {
         initRoles();
         initBankTypes();
         initTransactionTypes();
+        initLocations();
+        initBrands();
         createAdminAccount();
         createUserAccount();
     }
@@ -111,4 +114,65 @@ public class DataInitializerRunner implements CommandLineRunner {
             logger.error("❌ Failed to create USER account: {}", e.getMessage(), e);
         }
     }
+
+    private void initLocations() {
+        Object[][] locations = {
+                {"Dallas", "Texas"},
+                {"Houston", "Texas"},
+                {"Austin", "Texas"},
+                {"San Antonio", "Texas"},
+                {"Fort Worth", "Texas"},
+                {"Los Angeles", "California"},
+                {"San Diego", "California"},
+                {"New York", "New York"},
+                {"Chicago", "Illinois"},
+                {"Phoenix", "Arizona"},
+        };
+
+        for (Object[] loc : locations) {
+            String city = (String) loc[0];
+            String state = (String) loc[1];
+
+            try {
+                LocationCreateDto dto = new LocationCreateDto(city, state);
+                locationService.createLocation(dto);
+                logger.info("✅ Location created: {}, {}", city, state);
+            } catch (IllegalArgumentException e) {
+                logger.info("ℹ️ Location already exists: {}, {}", city, state);
+            } catch (Exception e) {
+                logger.error("❌ Failed to create location: {}, {} -> {}", city, state, e.getMessage(), e);
+            }
+        }
+    }
+
+    private void initBrands() {
+        Object[][] brands = {
+                {"Netflix", "https://netflix.com"},
+                {"Amazon", "https://amazon.com"},
+                {"Walmart", "https://walmart.com"},
+                {"Pizza Hut", "https://pizzahut.com"},
+                {"Chipotle", "https://chipotle.com"},
+                {"Starbucks", "https://starbucks.com"},
+                {"McDonald's", "https://mcdonalds.com"},
+                {"H-E-B", "https://heb.com"},
+                {"Target", "https://target.com"},
+                {"Spotify", "https://spotify.com"}
+        };
+
+        for (Object[] b : brands) {
+            String name = (String) b[0];
+            String url = (String) b[1];
+
+            try {
+                BrandCreateDto dto = new BrandCreateDto(name, url);
+                brandService.createBrand(dto);
+                logger.info("✅ Brand created: {}", name);
+            } catch (IllegalArgumentException e) {
+                logger.info("ℹ️ Brand already exists: {}", name);
+            } catch (Exception e) {
+                logger.error("❌ Failed to create brand: {} -> {}", name, e.getMessage(), e);
+            }
+        }
+    }
+
 }

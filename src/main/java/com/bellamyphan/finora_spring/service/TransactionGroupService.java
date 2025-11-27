@@ -8,7 +8,6 @@ import com.bellamyphan.finora_spring.dto.TransactionResponseDto;
 import com.bellamyphan.finora_spring.entity.*;
 import com.bellamyphan.finora_spring.repository.*;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +27,7 @@ public class TransactionGroupService {
     private final RepeatTransactionGroupRepository repeatTransactionGroupRepository;
     private final TransactionTypeRepository transactionTypeRepository;
     private final BrandRepository brandRepository;
+    private final LocationRepository locationRepository;
     private final BankRepository bankRepository;
 
     // ============================================================
@@ -142,31 +142,66 @@ public class TransactionGroupService {
     // ============================================================
     @Transactional
     public String createTransactionGroup(TransactionGroupCreateDto dto) {
-        TransactionGroup group = saveGroupWithRetry(new TransactionGroup());
+        // Ensure at least 1 transaction
+        if (dto.getTransactions() == null || dto.getTransactions().isEmpty()) {
+            throw new IllegalArgumentException("Cannot create a group without at least 1 transaction");
+        }
 
-        Brand brand = brandRepository.findById(dto.getBrandId())
-                .orElseThrow(() -> new RuntimeException("Brand not found: " + dto.getBrandId()));
+        // Ensure each transaction has a bank
+        for (TransactionCreateDto row : dto.getTransactions()) {
+            if (row.getBankId() == null || row.getBankId().isEmpty()) {
+                throw new IllegalArgumentException("Each transaction must have a bank selected");
+            }
+        }
 
-        TransactionType type = transactionTypeRepository
-                .findByType(TransactionTypeEnum.fromName(dto.getTypeId()))
-                .orElseThrow(() -> new RuntimeException("Transaction type not found: " + dto.getTypeId()));
-
-        LocalDate date = LocalDate.parse(dto.getDate());
+        // Create the group
+        TransactionGroup group = saveNewGroup(new TransactionGroup());
 
         for (TransactionCreateDto row : dto.getTransactions()) {
+
+            // Parse date per transaction
+            LocalDate date = row.getDate() == null || row.getDate().isEmpty()
+                    ? null
+                    : LocalDate.parse(row.getDate());
+
+            // Bank is required
             Bank bank = bankRepository.findById(row.getBankId())
                     .orElseThrow(() -> new RuntimeException("Bank not found: " + row.getBankId()));
 
+            // Fetch brand if provided
+            Brand brand = null;
+            if (row.getBrandId() != null && !row.getBrandId().isEmpty()) {
+                brand = brandRepository.findById(row.getBrandId())
+                        .orElseThrow(() -> new RuntimeException("Brand not found: " + row.getBrandId()));
+            }
+
+            // Fetch location if provided
+            Location location = null;
+            if (row.getLocationId() != null && !row.getLocationId().isEmpty()) {
+                location = locationRepository.findById(row.getLocationId())
+                        .orElseThrow(() -> new RuntimeException("Location not found: " + row.getLocationId()));
+            }
+
+            // Fetch transaction type
+            TransactionType type = null;
+            if (row.getTypeId() != null && !row.getTypeId().isEmpty()) {
+                type = transactionTypeRepository
+                        .findByType(TransactionTypeEnum.fromName(row.getTypeId()))
+                        .orElseThrow(() -> new RuntimeException("Transaction type not found: " + row.getTypeId()));
+            }
+
+            // Create transaction entity
             Transaction tx = new Transaction();
             tx.setGroup(group);
             tx.setDate(date);
-            tx.setAmount(row.getAmount() == null ? BigDecimal.ZERO : BigDecimal.valueOf(row.getAmount()));
+            tx.setAmount(row.getAmount() == null ? BigDecimal.ZERO : row.getAmount());
             tx.setNotes(row.getNotes());
             tx.setBank(bank);
             tx.setBrand(brand);
+            tx.setLocation(location);
             tx.setType(type);
 
-            Transaction savedTx = saveTransactionWithRetry(tx);
+            Transaction savedTx = saveNewTransaction(tx);
             savePendingTransaction(savedTx);
         }
 
@@ -203,36 +238,20 @@ public class TransactionGroupService {
     // PRIVATE HELPERS
     // ============================================================
     private TransactionResponseDto toDto(Transaction tx) {
-        TransactionResponseDto txDto = new TransactionResponseDto();
-        txDto.setId(tx.getId());
-        txDto.setDate(tx.getDate().toString());
-        txDto.setAmount(tx.getAmount());
-        txDto.setNotes(tx.getNotes());
-        txDto.setBankId(tx.getBank().getId());
-        txDto.setBrandId(tx.getBrand().getId());
-        txDto.setTypeId(tx.getType().getType().name());
-        txDto.setPosted(!pendingTransactionRepository.existsByTransactionId(tx.getId()));
-        return txDto;
+        boolean posted = !pendingTransactionRepository.existsByTransactionId(tx.getId());
+        return TransactionResponseDto.fromEntity(tx, posted);
     }
 
-    private TransactionGroup saveGroupWithRetry(TransactionGroup group) {
-        for (int i = 0; i < 10; i++) {
-            try {
-                group.setId(nanoIdService.generate());
-                return transactionGroupRepository.save(group);
-            } catch (DataIntegrityViolationException ignored) {}
-        }
-        throw new RuntimeException("Failed to generate unique TransactionGroup ID");
+    private TransactionGroup saveNewGroup(TransactionGroup group) {
+        String newId = nanoIdService.generateUniqueId(transactionGroupRepository);
+        group.setId(newId);
+        return transactionGroupRepository.save(group);
     }
 
-    private Transaction saveTransactionWithRetry(Transaction tx) {
-        for (int i = 0; i < 10; i++) {
-            try {
-                tx.setId(nanoIdService.generate());
-                return transactionRepository.save(tx);
-            } catch (DataIntegrityViolationException ignored) {}
-        }
-        throw new RuntimeException("Failed to generate unique Transaction ID");
+    private Transaction saveNewTransaction(Transaction tx) {
+        String newId = nanoIdService.generateUniqueId(transactionRepository);
+        tx.setId(newId);
+        return transactionRepository.save(tx);
     }
 
     private PendingTransaction savePendingTransaction(Transaction tx) {
@@ -268,35 +287,71 @@ public class TransactionGroupService {
 
             Transaction savedTx = opt.isPresent()
                     ? transactionRepository.save(tx)
-                    : saveTransactionWithRetry(tx);
+                    : saveNewTransaction(tx);
 
             updatePendingStatus(savedTx, txDto.isPosted());
         }
     }
 
     private void resolveLookupsAndSetFields(Transaction tx, TransactionResponseDto txDto) {
-        Brand brand = brandRepository.findById(txDto.getBrandId())
-                .orElseThrow(() -> new RuntimeException("Brand not found: " + txDto.getBrandId()));
-
+        // Bank is required
         Bank bank = bankRepository.findById(txDto.getBankId())
                 .orElseThrow(() -> new RuntimeException("Bank not found: " + txDto.getBankId()));
 
-        TransactionType type = transactionTypeRepository
-                .findByType(TransactionTypeEnum.fromName(txDto.getTypeId()))
-                .orElseThrow(() -> new RuntimeException("Transaction type not found: " + txDto.getTypeId()));
+        // Optional fields (can be null)
+        Brand brand = null;
+        if (txDto.getBrandId() != null && !txDto.getBrandId().isBlank()) {
+            brand = brandRepository.findById(txDto.getBrandId())
+                    .orElseThrow(() -> new RuntimeException("Brand not found: " + txDto.getBrandId()));
+        }
 
-        tx.setDate(LocalDate.parse(txDto.getDate()));
+        Location location = null;
+        if (txDto.getLocationId() != null && !txDto.getLocationId().isBlank()) {
+            location = locationRepository.findById(txDto.getLocationId())
+                    .orElseThrow(() -> new RuntimeException("Location not found: " + txDto.getLocationId()));
+        }
+
+        TransactionType type = null;
+        if (txDto.getTypeId() != null && !txDto.getTypeId().isBlank()) {
+            type = transactionTypeRepository
+                    .findByType(TransactionTypeEnum.fromName(txDto.getTypeId()))
+                    .orElseThrow(() -> new RuntimeException("Transaction type not found: " + txDto.getTypeId()));
+        }
+
+        // Date (optional, null/blank allowed)
+        if (txDto.getDate() != null && !txDto.getDate().isBlank()) {
+            tx.setDate(LocalDate.parse(txDto.getDate()));
+        } else {
+            tx.setDate(null);
+        }
+
+        // Amount and notes can be null
         tx.setAmount(txDto.getAmount());
         tx.setNotes(txDto.getNotes());
-        tx.setBrand(brand);
+
+        // Set resolved fields
         tx.setBank(bank);
+        tx.setBrand(brand);
+        tx.setLocation(location);
         tx.setType(type);
     }
 
     private void updatePendingStatus(Transaction tx, boolean isPosted) {
         if (isPosted) {
+            // Validate required fields
+            if (tx.getDate() == null ||
+                    tx.getAmount() == null ||
+                    tx.getBank() == null ||
+                    tx.getBrand() == null ||
+                    tx.getLocation() == null ||
+                    tx.getType() == null) {
+                throw new RuntimeException("Cannot post transaction: required fields missing");
+            }
+
+            // Remove from pending since it's fully filled
             pendingTransactionRepository.deleteByTransactionId(tx.getId());
         } else if (!pendingTransactionRepository.existsByTransactionId(tx.getId())) {
+            // Keep in pending table if not posted
             savePendingTransaction(tx);
         }
     }

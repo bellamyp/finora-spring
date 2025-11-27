@@ -19,46 +19,40 @@ public class UserController {
 
     private final UserService userService;
 
-    // GET /api/users - fetch all users
+    // GET /api/users - fetch all users (admin-only - SecurityConfig)
     @GetMapping
     public List<UserDto> getAllUsers() {
         return userService.findAll()
                 .stream()
-                .map(user -> new UserDto(
-                        user.getName(),
-                        user.getEmail(),
-                        user.getRole().getName().name()
-                ))
+                .map(UserDto::fromEntity)
                 .collect(Collectors.toList());
     }
 
-    // POST /api/users - create a new user
+    // POST /api/users - create a new user (public API)
     @PostMapping
-    public ResponseEntity<?> createUser(@RequestBody UserRequestDto userDto) {
+    public ResponseEntity<?> createUser(@RequestBody UserRequestDto userRequest) {
 
-        // Convert incoming email to lowercase for consistency
-        String email = (userDto.getEmail() != null) ? userDto.getEmail().toLowerCase().trim() : null;
+        // Normalize email
+        String email = (userRequest.getEmail() != null)
+                ? userRequest.getEmail().toLowerCase().trim()
+                : null;
 
-        // Check if email already exists
+        // Check for duplicate email
         if (email != null && userService.findByEmail(email).isPresent()) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
                     .body("Email already exists");
         }
 
         try {
-            // Replace email in DTO with normalized value
-            userDto.setEmail(email);
+            userRequest.setEmail(email);
 
-            User saved = userService.createUser(userDto);
+            // Convert DTO → Entity and save
+            User savedUser = userService.createUser(userRequest);
 
-            // Return DTO instead of entity because entity includes password
-            UserDto dto = new UserDto(
-                    saved.getName(),
-                    saved.getEmail(),
-                    saved.getRole().toString()
-            );
+            // Convert saved entity → DTO
+            UserDto responseDto = UserDto.fromEntity(savedUser);
 
-            return ResponseEntity.status(HttpStatus.CREATED).body(dto);
+            return ResponseEntity.status(HttpStatus.CREATED).body(responseDto);
 
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -66,7 +60,7 @@ public class UserController {
 
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error creating userDto: " + e.getMessage());
+                    .body("Error creating user: " + e.getMessage());
         }
     }
 }

@@ -8,7 +8,6 @@ import com.bellamyphan.finora_spring.entity.User;
 import com.bellamyphan.finora_spring.repository.PendingTransactionRepository;
 import com.bellamyphan.finora_spring.repository.TransactionRepository;
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.TypedQuery;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Predicate;
@@ -41,7 +40,7 @@ public class TransactionService {
                 .collect(Collectors.toList());
     }
 
-    public List<TransactionResponseDto> searchTransactions(TransactionSearchDto searchDto) {
+    public List<TransactionResponseDto> searchTransactions(TransactionSearchDto searchDto, User user) {
 
         CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Transaction> cq = cb.createQuery(Transaction.class);
@@ -78,6 +77,11 @@ public class TransactionService {
             predicate = cb.and(predicate, cb.equal(transaction.get("brand").get("id"), searchDto.getBrandId()));
         }
 
+        // --- Location ---
+        if (StringUtils.hasText(searchDto.getLocationId())) {
+            predicate = cb.and(predicate, cb.equal(transaction.get("location").get("id"), searchDto.getLocationId()));
+        }
+
         // --- Type ---
         if (StringUtils.hasText(searchDto.getTypeId())) {
             predicate = cb.and(predicate,
@@ -93,35 +97,25 @@ public class TransactionService {
                             "%" + searchDto.getKeyword().toLowerCase() + "%"));
         }
 
+        // --- USER filter: only return transactions for this user ---
+        predicate = cb.and(predicate, cb.equal(transaction.get("bank").get("user").get("id"), user.getId()));
+
         cq.where(predicate);
         cq.orderBy(cb.desc(transaction.get("date"))); // newest first
 
-        TypedQuery<Transaction> query = em.createQuery(cq);
-        List<Transaction> results = query.getResultList();
+        List<Transaction> results = em.createQuery(cq).getResultList();
 
         return results.stream()
                 .map(this::toDto)
                 .collect(Collectors.toList());
     }
 
+
     // ============================================================
     //   PRIVATE HELPERS
     // ============================================================
-
     private TransactionResponseDto toDto(Transaction tx) {
-        boolean isPending = pendingTransactionRepository.existsByTransactionId(tx.getId());
-
-        TransactionResponseDto dto = new TransactionResponseDto();
-        dto.setId(tx.getId());
-        dto.setGroupId(tx.getGroup() != null ? tx.getGroup().getId() : null);
-        dto.setDate(tx.getDate().toString());
-        dto.setAmount(tx.getAmount());
-        dto.setNotes(tx.getNotes());
-        dto.setBankId(tx.getBank().getId());
-        dto.setBrandId(tx.getBrand().getId());
-        dto.setTypeId(tx.getType().getType().name());
-        dto.setPosted(!isPending); // posted = true if NOT pending
-
-        return dto;
+        boolean posted = !pendingTransactionRepository.existsByTransactionId(tx.getId());
+        return TransactionResponseDto.fromEntity(tx, posted);
     }
 }

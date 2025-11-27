@@ -8,6 +8,7 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
@@ -74,5 +75,15 @@ public class JwtService {
         } catch (Exception e) {
             return null; // invalid token
         }
+    }
+
+    /**
+     * Get the currently authenticated user from the JWT token.
+     * Throws RuntimeException if user not found.
+     */
+    public User getCurrentUser() {
+        String userId = SecurityContextHolder.getContext().getAuthentication().getName();
+        return userService.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
     }
 }

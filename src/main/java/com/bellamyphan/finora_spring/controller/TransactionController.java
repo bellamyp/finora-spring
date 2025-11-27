@@ -3,11 +3,10 @@ package com.bellamyphan.finora_spring.controller;
 import com.bellamyphan.finora_spring.dto.TransactionResponseDto;
 import com.bellamyphan.finora_spring.dto.TransactionSearchDto;
 import com.bellamyphan.finora_spring.entity.User;
+import com.bellamyphan.finora_spring.service.JwtService;
 import com.bellamyphan.finora_spring.service.TransactionService;
-import com.bellamyphan.finora_spring.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -18,18 +17,14 @@ import java.util.List;
 public class TransactionController {
 
     private final TransactionService transactionService;
-    private final UserService userService;
+    private final JwtService jwtService;
 
     /**
      * Get all pending transactions for current user
      */
     @GetMapping("/pending")
     public ResponseEntity<List<TransactionResponseDto>> getPendingTransactions() {
-        // Get user ID from JWT
-        String userId = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userService.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
-
+        User user = jwtService.getCurrentUser();
         List<TransactionResponseDto> pendingTxs = transactionService.getPendingTransactionsForUser(user);
         return ResponseEntity.ok(pendingTxs);
     }
@@ -40,8 +35,8 @@ public class TransactionController {
     @PostMapping("/search")
     public ResponseEntity<List<TransactionResponseDto>> searchTransactions(
             @RequestBody TransactionSearchDto searchDto) {
-
-        List<TransactionResponseDto> results = transactionService.searchTransactions(searchDto);
+        User user = jwtService.getCurrentUser();
+        List<TransactionResponseDto> results = transactionService.searchTransactions(searchDto, user);
         return ResponseEntity.ok(results);
     }
 }

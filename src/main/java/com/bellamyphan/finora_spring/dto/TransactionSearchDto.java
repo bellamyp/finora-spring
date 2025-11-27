@@ -12,6 +12,7 @@ public class TransactionSearchDto {
     private BigDecimal maxAmount;
     private String bankId;
     private String brandId;
+    private String locationId;
     private String typeId;
     private String keyword;
 }
