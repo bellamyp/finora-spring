@@ -164,12 +164,9 @@ public class TransactionGroupService {
                     ? null
                     : LocalDate.parse(row.getDate());
 
-            // Fetch bank if provided
-            Bank bank = null;
-            if (row.getBankId() != null && !row.getBankId().isEmpty()) {
-                bank = bankRepository.findById(row.getBankId())
-                        .orElseThrow(() -> new RuntimeException("Bank not found: " + row.getBankId()));
-            }
+            // Bank is required
+            Bank bank = bankRepository.findById(row.getBankId())
+                    .orElseThrow(() -> new RuntimeException("Bank not found: " + row.getBankId()));
 
             // Fetch brand if provided
             Brand brand = null;
