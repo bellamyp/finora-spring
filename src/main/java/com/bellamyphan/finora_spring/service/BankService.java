@@ -1,8 +1,14 @@
 package com.bellamyphan.finora_spring.service;
 
+import com.bellamyphan.finora_spring.dto.BankCreateDto;
+import com.bellamyphan.finora_spring.dto.BankDto;
 import com.bellamyphan.finora_spring.entity.Bank;
+import com.bellamyphan.finora_spring.entity.BankGroup;
+import com.bellamyphan.finora_spring.entity.BankType;
 import com.bellamyphan.finora_spring.entity.User;
+import com.bellamyphan.finora_spring.repository.BankGroupRepository;
 import com.bellamyphan.finora_spring.repository.BankRepository;
+import com.bellamyphan.finora_spring.repository.BankTypeRepository;
 import com.bellamyphan.finora_spring.repository.TransactionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -15,16 +21,24 @@ import java.util.List;
 public class BankService {
 
     private final BankRepository bankRepository;
+    private final BankGroupRepository bankGroupRepository;
+    private final BankTypeRepository bankTypeRepository;
     private final TransactionRepository transactionRepository;
     private final NanoIdService nanoIdService;
 
     /**
      * Save a new bank with unique 10-char ID
      */
-    public Bank createBank(Bank bank) {
+    public BankDto createBank(BankCreateDto createDto, User user) {
         String bankId = nanoIdService.generateUniqueId(bankRepository);
-        bank.setId(bankId);
-        return bankRepository.save(bank);
+        BankGroup group = bankGroupRepository.findById(createDto.getGroupId())
+                .orElseThrow(() -> new RuntimeException("Bank group id is not found: " + createDto.getGroupId()));
+        BankType type = bankTypeRepository.findByType(createDto.getType())
+                .orElseThrow(() -> new RuntimeException("Bank type is not found: " + createDto.getType().name()));
+        Bank newBank = new Bank(bankId, createDto.getName(), createDto.getOpeningDate(),
+                createDto.getClosingDate(), group, type, user);
+        newBank = bankRepository.save(newBank);
+        return new BankDto(newBank.getId(), newBank.getName(), newBank.getType().getType(), newBank.getUser().getEmail());
     }
 
     /**

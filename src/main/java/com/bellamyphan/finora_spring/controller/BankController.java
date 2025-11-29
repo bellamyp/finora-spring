@@ -3,9 +3,7 @@ package com.bellamyphan.finora_spring.controller;
 import com.bellamyphan.finora_spring.dto.BankCreateDto;
 import com.bellamyphan.finora_spring.dto.BankDto;
 import com.bellamyphan.finora_spring.entity.Bank;
-import com.bellamyphan.finora_spring.entity.BankType;
 import com.bellamyphan.finora_spring.entity.User;
-import com.bellamyphan.finora_spring.repository.BankTypeRepository;
 import com.bellamyphan.finora_spring.service.BankService;
 import com.bellamyphan.finora_spring.service.JwtService;
 import jakarta.validation.Valid;
@@ -24,7 +22,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class BankController {
 
-    private final BankTypeRepository bankTypeRepository;
     private final BankService bankService;
     private final JwtService jwtService;
 
@@ -82,31 +79,8 @@ public class BankController {
     public ResponseEntity<BankDto> createNewBank(@Valid @RequestBody BankCreateDto bankCreateDto) {
         // Get username/email from JWT token
         User user = jwtService.getCurrentUser();
-
-        // Find bank type
-        BankType bankType = bankTypeRepository.findByType(bankCreateDto.getType())
-                .orElseThrow(() -> new RuntimeException("Bank type not found: " + bankCreateDto.getType()));
-
-        // Create new bank entity
-        Bank bank = new Bank(
-                bankCreateDto.getName(),
-                bankCreateDto.getOpeningDate(),
-                bankCreateDto.getClosingDate(),
-                bankType,
-                user
-        );
-
         // Save via BankService (handles NanoID)
-        Bank savedBank = bankService.createBank(bank);
-
-        // Convert to DTO for response
-        BankDto response = new BankDto(
-                savedBank.getId(),
-                savedBank.getName(),
-                savedBank.getType().getType(),
-                savedBank.getUser().getEmail()
-        );
-
-        return new ResponseEntity<>(response, HttpStatus.CREATED);
+        BankDto savedBank = bankService.createBank(bankCreateDto, user);
+        return new ResponseEntity<>(savedBank, HttpStatus.CREATED);
     }
 }

@@ -16,18 +16,23 @@ class BankTest {
     void testNoArgsConstructorAndSetters() {
         Bank bank = new Bank();
 
-        // Create related entities
+        // related entities
         User user = new User();
         user.setId("user123");
         user.setEmail("test@example.com");
 
         BankType type = new BankType(BankTypeEnum.SAVINGS);
 
+        BankGroup group = new BankGroup();
+        group.setId("grp1");
+        group.setName("Main Group");
+
         // Set values
         bank.setId("bank123456");
         bank.setName("Test Bank");
         bank.setOpeningDate(LocalDate.of(2023, 1, 1));
         bank.setClosingDate(LocalDate.of(2025, 12, 31));
+        bank.setGroup(group);
         bank.setType(type);
         bank.setUser(user);
 
@@ -36,31 +41,39 @@ class BankTest {
         assertEquals("Test Bank", bank.getName());
         assertEquals(LocalDate.of(2023, 1, 1), bank.getOpeningDate());
         assertEquals(LocalDate.of(2025, 12, 31), bank.getClosingDate());
+        assertEquals(group, bank.getGroup());
         assertEquals(type, bank.getType());
         assertEquals(user, bank.getUser());
     }
 
     @Test
-    void testConstructorWithoutId() {
+    void testAllArgsConstructor() {
         User user = new User();
         user.setId("user456");
         user.setEmail("user2@example.com");
 
         BankType type = new BankType(BankTypeEnum.CHECKING);
 
+        BankGroup group = new BankGroup();
+        group.setId("grp2");
+        group.setName("Secondary Group");
+
         Bank bank = new Bank(
+                "bank001",
                 "My Bank",
                 LocalDate.of(2022, 5, 15),
-                null, // closingDate null
+                null,         // closingDate null
+                group,
                 type,
                 user
         );
 
         // Assertions
-        assertNull(bank.getId(), "ID should be null for constructor without id");
+        assertEquals("bank001", bank.getId());
         assertEquals("My Bank", bank.getName());
         assertEquals(LocalDate.of(2022, 5, 15), bank.getOpeningDate());
         assertNull(bank.getClosingDate());
+        assertEquals(group, bank.getGroup());
         assertEquals(type, bank.getType());
         assertEquals(user, bank.getUser());
     }
