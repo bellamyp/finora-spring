@@ -3,9 +3,7 @@ package com.bellamyphan.finora_spring.controller;
 import com.bellamyphan.finora_spring.dto.BankCreateDto;
 import com.bellamyphan.finora_spring.dto.BankDto;
 import com.bellamyphan.finora_spring.entity.Bank;
-import com.bellamyphan.finora_spring.entity.BankType;
 import com.bellamyphan.finora_spring.entity.User;
-import com.bellamyphan.finora_spring.repository.BankTypeRepository;
 import com.bellamyphan.finora_spring.service.BankService;
 import com.bellamyphan.finora_spring.service.JwtService;
 import jakarta.validation.Valid;
@@ -24,7 +22,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class BankController {
 
-    private final BankTypeRepository bankTypeRepository;
     private final BankService bankService;
     private final JwtService jwtService;
 
