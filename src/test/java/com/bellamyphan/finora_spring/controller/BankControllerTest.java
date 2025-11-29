@@ -6,7 +6,6 @@ import com.bellamyphan.finora_spring.dto.BankDto;
 import com.bellamyphan.finora_spring.entity.Bank;
 import com.bellamyphan.finora_spring.entity.BankType;
 import com.bellamyphan.finora_spring.entity.User;
-import com.bellamyphan.finora_spring.repository.BankTypeRepository;
 import com.bellamyphan.finora_spring.service.BankService;
 import com.bellamyphan.finora_spring.service.JwtService;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,7 +20,6 @@ import org.springframework.http.ResponseEntity;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -31,9 +29,6 @@ class BankControllerTest {
 
     @InjectMocks
     private BankController controller;
-
-    @Mock
-    private BankTypeRepository bankTypeRepository;
 
     @Mock
     private BankService bankService;
@@ -54,8 +49,7 @@ class BankControllerTest {
 
     @Test
     void getBanksByUser_returnsBankListWithBalance() {
-        BankType bankType = new BankType();
-        bankType.setType(BankTypeEnum.CHECKING);
+        BankType bankType = new BankType(BankTypeEnum.CHECKING);
 
         Bank bank = new Bank();
         bank.setId("bank123");
@@ -79,8 +73,7 @@ class BankControllerTest {
 
     @Test
     void getBankById_returnsBankDetails() {
-        BankType bankType = new BankType();
-        bankType.setType(BankTypeEnum.SAVINGS);
+        BankType bankType = new BankType(BankTypeEnum.SAVINGS);
 
         Bank bank = new Bank();
         bank.setId("bank123");
@@ -94,6 +87,7 @@ class BankControllerTest {
         ResponseEntity<BankDto> response = controller.getBankById("bank123");
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
+
         BankDto dto = response.getBody();
         assertNotNull(dto);
         assertEquals("bank123", dto.getId());
@@ -120,46 +114,30 @@ class BankControllerTest {
 
     @Test
     void createNewBank_success() {
-        BankType bankType = new BankType();
-        bankType.setType(BankTypeEnum.CHECKING);
-
         BankCreateDto createDto = new BankCreateDto();
         createDto.setName("New Bank");
         createDto.setType(BankTypeEnum.CHECKING);
         createDto.setOpeningDate(LocalDate.now());
 
-        Bank savedBank = new Bank();
-        savedBank.setId("bank999");
-        savedBank.setName("New Bank");
-        savedBank.setType(bankType);
-        savedBank.setUser(mockUser);
+        BankDto savedBankDto = new BankDto(
+                "bank999",
+                "New Bank",
+                BankTypeEnum.CHECKING,
+                "user@example.com",
+                BigDecimal.ZERO
+        );
 
-        when(bankTypeRepository.findByType(BankTypeEnum.CHECKING)).thenReturn(Optional.of(bankType));
-        when(bankService.createBank(any(Bank.class))).thenReturn(savedBank);
+        when(bankService.createBank(createDto, mockUser)).thenReturn(savedBankDto);
 
         ResponseEntity<BankDto> response = controller.createNewBank(createDto);
 
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
+
         BankDto dto = response.getBody();
         assertNotNull(dto);
         assertEquals("bank999", dto.getId());
         assertEquals("New Bank", dto.getName());
         assertEquals(BankTypeEnum.CHECKING, dto.getType());
         assertEquals("user@example.com", dto.getEmail());
-    }
-
-    @Test
-    void createNewBank_throwsIfBankTypeNotFound() {
-        BankCreateDto createDto = new BankCreateDto();
-        createDto.setName("Bank X");
-        createDto.setType(BankTypeEnum.CHECKING);
-        createDto.setOpeningDate(LocalDate.now());
-
-        when(bankTypeRepository.findByType(BankTypeEnum.CHECKING)).thenReturn(Optional.empty());
-
-        RuntimeException exception = assertThrows(RuntimeException.class,
-                () -> controller.createNewBank(createDto));
-
-        assertEquals("Bank type not found: CHECKING", exception.getMessage());
     }
 }
