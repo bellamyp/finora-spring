@@ -2,6 +2,7 @@ package com.bellamyphan.finora_spring.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -9,6 +10,7 @@ import java.time.LocalDate;
 
 @Data
 @NoArgsConstructor
+@AllArgsConstructor
 @Entity
 @Table(name = "banks")
 public class Bank {
@@ -28,19 +30,14 @@ public class Bank {
     private LocalDate closingDate;
 
     @ManyToOne(fetch = FetchType.EAGER, optional = false)
+    @JoinColumn(name = "group_id", nullable = false, foreignKey = @ForeignKey(name = "fk_banks_bank_groups"))
+    private BankGroup group;
+
+    @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "type_id", nullable = false, foreignKey = @ForeignKey(name = "fk_banks_bank_types"))
     private BankType type;
 
     @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "user_id", nullable = false, foreignKey = @ForeignKey(name = "fk_banks_users"))
     private User user;
-
-    // Constructor with all fields except id (id can be generated separately)
-    public Bank(String name, LocalDate openingDate, LocalDate closingDate, BankType type, User user) {
-        this.name = name;
-        this.openingDate = openingDate;
-        this.closingDate = closingDate;
-        this.type = type;
-        this.user = user;
-    }
 }
