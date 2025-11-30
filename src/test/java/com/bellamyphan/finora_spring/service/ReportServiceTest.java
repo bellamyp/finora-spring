@@ -12,9 +12,10 @@ import com.bellamyphan.finora_spring.repository.ReportRepository;
 import com.bellamyphan.finora_spring.repository.TransactionGroupRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -23,6 +24,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 class ReportServiceTest {
 
     @Mock
@@ -44,9 +46,6 @@ class ReportServiceTest {
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
-
-        // Create a dummy Role (required by User)
         Role role = new Role();
         role.setId("role1");
         role.setName(RoleEnum.ROLE_USER);
@@ -74,8 +73,8 @@ class ReportServiceTest {
         assertEquals(LocalDate.now().withDayOfMonth(1), dto.getMonth());
         assertFalse(dto.isPosted());
 
-        verify(reportRepository, times(1)).save(any(Report.class));
-        verify(reportRepository, times(1)).flush();
+        verify(reportRepository).save(any(Report.class));
+        verify(reportRepository).flush();
         verify(transactionGroupRepository, never()).saveAll(anyList());
     }
 
@@ -107,12 +106,14 @@ class ReportServiceTest {
         group.setId("g1");
         group.setTransactions(List.of(tx1));
 
+        TransactionGroup entityGroup = new TransactionGroup();
+
         when(reportRepository.findTopByUserIdOrderByMonthDesc(testUser.getId()))
                 .thenReturn(Optional.empty());
         when(transactionGroupService.getFullyPostedGroupsForNewReport(testUser))
                 .thenReturn(List.of(group));
         when(transactionGroupRepository.findAllById(List.of("g1")))
-                .thenReturn(List.of(new TransactionGroup()));
+                .thenReturn(List.of(entityGroup));
         when(nanoIdService.generateUniqueId(reportRepository)).thenReturn("report789");
 
         // Act
@@ -120,6 +121,6 @@ class ReportServiceTest {
 
         // Assert
         assertEquals(LocalDate.of(2025, 9, 1), dto.getMonth());
-        verify(transactionGroupRepository, times(1)).saveAll(anyList());
+        verify(transactionGroupRepository).saveAll(List.of(entityGroup));
     }
 }

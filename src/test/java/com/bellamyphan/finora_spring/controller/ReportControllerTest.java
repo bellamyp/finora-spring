@@ -8,9 +8,11 @@ import com.bellamyphan.finora_spring.service.JwtService;
 import com.bellamyphan.finora_spring.service.ReportService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import java.time.LocalDate;
@@ -18,6 +20,7 @@ import java.time.LocalDate;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 class ReportControllerTest {
 
     @Mock
@@ -34,18 +37,16 @@ class ReportControllerTest {
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
-
-        // Create a dummy Role (needed by User)
+        // Sample Role
         Role role = new Role();
         role.setId("role1");
         role.setName(RoleEnum.ROLE_USER);
 
-        // Sample user with all required fields
+        // Sample User
         mockUser = new User("Test User", "test@example.com", "password123", role);
-        mockUser.setId("user123"); // set ID manually for testing
+        mockUser.setId("user123");
 
-        // Sample report DTO
+        // Sample ReportDto
         mockReport = new ReportDto();
         mockReport.setId("report123");
         mockReport.setUserId(mockUser.getId());
@@ -55,7 +56,7 @@ class ReportControllerTest {
 
     @Test
     void createNewReport_ShouldReturnCreatedReport() {
-        // Arrange: mock service calls
+        // Arrange
         when(jwtService.getCurrentUser()).thenReturn(mockUser);
         when(reportService.createNewReport(mockUser)).thenReturn(mockReport);
 
@@ -63,7 +64,7 @@ class ReportControllerTest {
         ResponseEntity<ReportDto> response = reportController.createNewReport();
 
         // Assert
-        assertEquals(201, response.getStatusCodeValue()); // HTTP CREATED
+        assertEquals(HttpStatus.CREATED, response.getStatusCode()); // Use enum instead of deprecated method
         assertEquals(mockReport, response.getBody());
 
         // Verify interactions
