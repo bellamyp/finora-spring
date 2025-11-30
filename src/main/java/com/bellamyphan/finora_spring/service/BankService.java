@@ -55,7 +55,9 @@ public class BankService {
         if (user == null) {
             throw new IllegalArgumentException("User cannot be null");
         }
-        List<Bank> banks = bankRepository.findByUser(user);
+        List<Bank> banks = bankRepository.findByUser(user).stream()
+                .sorted((b1, b2) -> b1.getGroup().getName().compareToIgnoreCase(b2.getGroup().getName()))
+                .toList();
         return banks.stream()
                 .map(bank -> {
                     BigDecimal balance = calculateBalance(bank.getId());
