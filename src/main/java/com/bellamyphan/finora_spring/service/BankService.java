@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -38,17 +39,36 @@ public class BankService {
         Bank newBank = new Bank(bankId, createDto.getName(), createDto.getOpeningDate(),
                 createDto.getClosingDate(), group, type, user);
         newBank = bankRepository.save(newBank);
-        return new BankDto(newBank.getId(), newBank.getName(), newBank.getType().getType(), newBank.getUser().getEmail());
+        // Return the created bank dto
+        BankDto response = new BankDto();
+        response.setId(newBank.getId());
+        response.setName(newBank.getName());
+        response.setType(newBank.getType().getType());
+        response.setEmail(newBank.getUser().getEmail());
+        return response;
     }
 
     /**
      * Find all banks belonging to a given user
      */
-    public List<Bank> findBanksByUser(User user) {
+    public List<BankDto> findBanksByUser(User user) {
         if (user == null) {
             throw new IllegalArgumentException("User cannot be null");
         }
-        return bankRepository.findByUser(user);
+        List<Bank> banks = bankRepository.findByUser(user);
+        return banks.stream()
+                .map(bank -> {
+                    BigDecimal balance = calculateBalance(bank.getId());
+                    return new BankDto(
+                            bank.getId(),
+                            bank.getGroup().getId(),
+                            bank.getName(),
+                            bank.getType().getType(),
+                            bank.getUser().getEmail(),
+                            balance
+                    );
+                })
+                .collect(Collectors.toList());
     }
 
     /**

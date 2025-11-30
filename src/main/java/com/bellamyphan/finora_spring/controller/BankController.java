@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.stream.Collectors;
 
 
 @RestController
@@ -31,20 +30,7 @@ public class BankController {
     @GetMapping
     public List<BankDto> getBanksByUser() {
         User user = jwtService.getCurrentUser();
-
-        return bankService.findBanksByUser(user)
-                .stream()
-                .map(bank -> {
-                    BigDecimal balance = bankService.calculateBalance(bank.getId());
-                    return new BankDto(
-                            bank.getId(),
-                            bank.getName(),
-                            bank.getType() != null ? bank.getType().getType() : null,
-                            bank.getUser() != null ? bank.getUser().getEmail() : "Unknown",
-                            balance
-                    );
-                })
-                .collect(Collectors.toList());
+        return bankService.findBanksByUser(user);
     }
 
     // -----------------------
@@ -63,8 +49,9 @@ public class BankController {
 
         BankDto response = new BankDto(
                 bank.getId(),
+                bank.getGroup().getId(),
                 bank.getName(),
-                bank.getType() != null ? bank.getType().getType() : null,
+                bank.getType().getType(),
                 bank.getUser().getEmail(),
                 balance
         );
