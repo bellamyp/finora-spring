@@ -1,6 +1,6 @@
 package com.bellamyphan.finora_spring.controller;
 
-import com.bellamyphan.finora_spring.entity.RepeatTransactionGroup;
+import com.bellamyphan.finora_spring.dto.TransactionGroupResponseDto;
 import com.bellamyphan.finora_spring.entity.TransactionGroup;
 import com.bellamyphan.finora_spring.entity.User;
 import com.bellamyphan.finora_spring.service.JwtService;
@@ -59,7 +59,7 @@ public class RepeatTransactionGroupController {
         }
 
         // Mark as repeat
-        RepeatTransactionGroup repeatGroup = repeatTransactionGroupService.markAsRepeat(group);
+        TransactionGroupResponseDto repeatGroup = repeatTransactionGroupService.markAsRepeat(group, user);
         return ResponseEntity.ok(repeatGroup);
     }
 
