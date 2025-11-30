@@ -1,6 +1,6 @@
 package com.bellamyphan.finora_spring.controller;
 
-import com.bellamyphan.finora_spring.entity.RepeatTransactionGroup;
+import com.bellamyphan.finora_spring.dto.TransactionGroupResponseDto;
 import com.bellamyphan.finora_spring.entity.Transaction;
 import com.bellamyphan.finora_spring.entity.TransactionGroup;
 import com.bellamyphan.finora_spring.entity.User;
@@ -97,7 +97,7 @@ class RepeatTransactionGroupControllerTest {
         ResponseEntity<?> response = controller.markAsRepeat("G1");
 
         assertEquals(403, response.getStatusCode().value());
-        assertEquals("You are not allowed to mark this empty group as repeat", response.getBody());
+        assertNull(response.getBody()); // controller returns ResponseEntity.status(FORBIDDEN).build()
     }
 
     @Test
@@ -107,13 +107,15 @@ class RepeatTransactionGroupControllerTest {
         when(groupService.getUserTransactionsForGroup(mockGroup, mockUser))
                 .thenReturn(List.of(mockTxn()));
 
-        RepeatTransactionGroup repeat = new RepeatTransactionGroup(mockGroup);
-        when(repeatService.markAsRepeat(mockGroup)).thenReturn(repeat);
+        TransactionGroupResponseDto dto = new TransactionGroupResponseDto();
+        dto.setId("G1");
 
-        ResponseEntity<?> response = controller.markAsRepeat("G1");
+        when(repeatService.markAsRepeat(mockGroup, mockUser)).thenReturn(dto);
+
+        ResponseEntity<TransactionGroupResponseDto> response = controller.markAsRepeat("G1");
 
         assertEquals(200, response.getStatusCode().value());
-        assertSame(repeat, response.getBody());
+        assertSame(dto, response.getBody());
     }
 
     // ---------------------------------------------------------

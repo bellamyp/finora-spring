@@ -1,7 +1,9 @@
 package com.bellamyphan.finora_spring.service;
 
+import com.bellamyphan.finora_spring.dto.TransactionGroupResponseDto;
 import com.bellamyphan.finora_spring.entity.RepeatTransactionGroup;
 import com.bellamyphan.finora_spring.entity.TransactionGroup;
+import com.bellamyphan.finora_spring.entity.User;
 import com.bellamyphan.finora_spring.repository.RepeatTransactionGroupRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -12,7 +14,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -21,6 +22,9 @@ class RepeatTransactionGroupServiceTest {
     @Mock
     private RepeatTransactionGroupRepository repeatRepository;
 
+    @Mock
+    private TransactionGroupService transactionGroupService;
+
     @InjectMocks
     private RepeatTransactionGroupService service;
 
@@ -28,7 +32,7 @@ class RepeatTransactionGroupServiceTest {
     // markAsRepeat — already exists
     // ---------------------------------------------------
     @Test
-    void markAsRepeat_returnsExisting_whenAlreadyExists() {
+    void markAsRepeat_returnsDto_whenAlreadyExists() {
         TransactionGroup group = new TransactionGroup();
         group.setId("G1");
 
@@ -36,9 +40,16 @@ class RepeatTransactionGroupServiceTest {
 
         when(repeatRepository.findById("G1")).thenReturn(Optional.of(existing));
 
-        RepeatTransactionGroup result = service.markAsRepeat(group);
+        User user = new User();
+        TransactionGroupResponseDto dto = new TransactionGroupResponseDto();
+        dto.setId("G1");
 
-        assertSame(existing, result);
+        when(transactionGroupService.getTransactionGroupByIdForUser("G1", user))
+                .thenReturn(Optional.of(dto));
+
+        TransactionGroupResponseDto result = service.markAsRepeat(group, user);
+
+        assertSame(dto, result);
         verify(repeatRepository, never()).save(any());
     }
 
@@ -55,9 +66,16 @@ class RepeatTransactionGroupServiceTest {
         RepeatTransactionGroup saved = new RepeatTransactionGroup(group);
         when(repeatRepository.save(any())).thenReturn(saved);
 
-        RepeatTransactionGroup result = service.markAsRepeat(group);
+        User user = new User();
+        TransactionGroupResponseDto dto = new TransactionGroupResponseDto();
+        dto.setId("G1");
 
-        assertEquals(saved, result);
+        when(transactionGroupService.getTransactionGroupByIdForUser("G1", user))
+                .thenReturn(Optional.of(dto));
+
+        TransactionGroupResponseDto result = service.markAsRepeat(group, user);
+
+        assertSame(dto, result);
         verify(repeatRepository).save(any(RepeatTransactionGroup.class));
     }
 
@@ -70,7 +88,6 @@ class RepeatTransactionGroupServiceTest {
         group.setId("G1");
 
         RepeatTransactionGroup repeat = new RepeatTransactionGroup(group);
-
         when(repeatRepository.findById("G1")).thenReturn(Optional.of(repeat));
 
         service.removeRepeat(group);

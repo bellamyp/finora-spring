@@ -44,23 +44,18 @@ public class RepeatTransactionGroupController {
     }
 
     @PostMapping("/{groupId}")
-    public ResponseEntity<?> markAsRepeat(@PathVariable String groupId) {
-        // Get current user
+    public ResponseEntity<TransactionGroupResponseDto> markAsRepeat(@PathVariable String groupId) {
         User user = jwtService.getCurrentUser();
-
-        // Fetch group entity
         TransactionGroup group = groupService.fetchTransactionGroup(groupId);
 
-        // Verify ownership via transactions' banks
         List<?> userTransactions = groupService.getUserTransactionsForGroup(group, user);
         if (userTransactions.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body("You are not allowed to mark this empty group as repeat");
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
-        // Mark as repeat
-        TransactionGroupResponseDto repeatGroup = repeatTransactionGroupService.markAsRepeat(group, user);
-        return ResponseEntity.ok(repeatGroup);
+        // Use the updated service that returns DTO
+        TransactionGroupResponseDto dto = repeatTransactionGroupService.markAsRepeat(group, user);
+        return ResponseEntity.ok(dto);
     }
 
     @DeleteMapping("/{groupId}")
