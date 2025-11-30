@@ -24,13 +24,15 @@ public interface TransactionGroupRepository extends JpaRepository<TransactionGro
         SELECT tg
         FROM TransactionGroup tg
         JOIN FETCH tg.transactions t
+        JOIN t.bank b
         WHERE tg.report IS NULL
+          AND b.user.id = :userId
           AND t.id NOT IN (SELECT pt.transactionId FROM PendingTransaction pt)
         GROUP BY tg
         HAVING COUNT(t) = (SELECT COUNT(tt) FROM Transaction tt WHERE tt.group = tg)
         ORDER BY MAX(t.date) DESC
     """)
-    List<TransactionGroup> getFullyPostedGroupsForNewReport();
+    List<TransactionGroup> getFullyPostedGroupsForNewReport(@Param("userId") String userId);
 
     @Modifying
     @Query("UPDATE TransactionGroup tg SET tg.report = :report WHERE tg.id IN :groupIds")

@@ -1,6 +1,7 @@
 package com.bellamyphan.finora_spring.entity;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -8,6 +9,7 @@ import java.util.List;
 
 @Data
 @NoArgsConstructor
+@AllArgsConstructor
 @Entity
 @Table(name = "transaction_groups")
 public class TransactionGroup {
@@ -23,10 +25,4 @@ public class TransactionGroup {
     // NEW: link to transactions
     @OneToMany(mappedBy = "group", fetch = FetchType.LAZY)
     private List<Transaction> transactions;
-
-    // Constructor without ID
-    // Todo: Change to all args constructor
-    public TransactionGroup(Report report) {
-        this.report = report;
-    }
 }

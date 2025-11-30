@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 @Service
@@ -45,7 +46,7 @@ public class ReportService {
                 LocalDate earliestDate = fullyPostedGroups.stream()
                         .flatMap(g -> g.getTransactions().stream())
                         .map(tx -> tx.getDate() != null ? LocalDate.parse(tx.getDate()) : null)
-                        .filter(d -> d != null)
+                        .filter(Objects::nonNull)
                         .min(LocalDate::compareTo)
                         .orElse(LocalDate.now());
                 nextMonth = earliestDate.withDayOfMonth(1);

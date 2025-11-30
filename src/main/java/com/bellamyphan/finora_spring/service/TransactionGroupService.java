@@ -99,7 +99,8 @@ public class TransactionGroupService {
     // GET FULLY POSTED GROUPS FOR REPORT FEATURE
     // ============================================================
     public List<TransactionGroupResponseDto> getFullyPostedGroupsForNewReport(User user) {
-        List<TransactionGroup> groups = transactionGroupRepository.getFullyPostedGroupsForNewReport();
+        List<TransactionGroup> groups = transactionGroupRepository
+                .getFullyPostedGroupsForNewReport(user.getId());
 
         return groups.stream()
                 .map(g -> {
@@ -283,8 +284,8 @@ public class TransactionGroupService {
         return transactionRepository.save(tx);
     }
 
-    private PendingTransaction savePendingTransaction(Transaction tx) {
-        return pendingTransactionRepository.save(new PendingTransaction(tx));
+    private void savePendingTransaction(Transaction tx) {
+        pendingTransactionRepository.save(new PendingTransaction(tx));
     }
 
     private void deleteAllTransactionsAndGroup(List<Transaction> transactions, TransactionGroup group) {
