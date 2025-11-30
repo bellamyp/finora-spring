@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @NoArgsConstructor
 @Entity
@@ -18,7 +20,12 @@ public class TransactionGroup {
     @JoinColumn(name = "report_id", foreignKey = @ForeignKey(name = "fk_transaction_groups_reports"))
     private Report report;
 
+    // NEW: link to transactions
+    @OneToMany(mappedBy = "group", fetch = FetchType.LAZY)
+    private List<Transaction> transactions;
+
     // Constructor without ID
+    // Todo: Change to all args constructor
     public TransactionGroup(Report report) {
         this.report = report;
     }

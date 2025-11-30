@@ -96,6 +96,35 @@ public class TransactionGroupService {
     }
 
     // ============================================================
+    // GET FULLY POSTED GROUPS FOR REPORT FEATURE
+    // ============================================================
+    public List<TransactionGroupResponseDto> getFullyPostedGroupsForNewReport(User user) {
+        List<TransactionGroup> groups = transactionGroupRepository.getFullyPostedGroupsForNewReport();
+
+        return groups.stream()
+                .map(g -> {
+                    List<TransactionResponseDto> txDtos = g.getTransactions().stream()
+                            .map(this::toDto)
+                            .sorted((a, b) -> {
+                                // descending by date
+                                LocalDate d1 = a.getDate() != null ? LocalDate.parse(a.getDate()) : null;
+                                LocalDate d2 = b.getDate() != null ? LocalDate.parse(b.getDate()) : null;
+                                if (d1 == null && d2 == null) return 0;
+                                if (d1 == null) return 1;
+                                if (d2 == null) return -1;
+                                return d2.compareTo(d1);
+                            })
+                            .toList();
+
+                    TransactionGroupResponseDto dto = new TransactionGroupResponseDto();
+                    dto.setId(g.getId());
+                    dto.setTransactions(txDtos);
+                    return dto;
+                })
+                .toList();
+    }
+
+    // ============================================================
     // REPEAT GROUPS (optimized)
     // ============================================================
     public List<TransactionGroupResponseDto> getRepeatTransactionGroupsForUser(User user) {
