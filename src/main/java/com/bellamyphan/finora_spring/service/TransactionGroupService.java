@@ -278,6 +278,14 @@ public class TransactionGroupService {
     @Transactional
     public void updateTransactionGroup(TransactionGroupResponseDto dto, User user) {
         TransactionGroup group = fetchTransactionGroup(dto.getId());
+
+        // ✅ New check: prevent updates if group is linked to a report entity
+        if (group.getReport() != null) {
+            throw new IllegalArgumentException(
+                    "Cannot update transaction group because it has already been included in a report."
+            );
+        }
+
         List<Transaction> existingTransactions = getUserTransactionsForGroup(group, user);
 
         if (dto.getTransactions() == null || dto.getTransactions().isEmpty()) {
