@@ -34,6 +34,9 @@ public interface TransactionGroupRepository extends JpaRepository<TransactionGro
     """)
     List<TransactionGroup> getFullyPostedGroupsForNewReport(@Param("userId") String userId);
 
+    // Fetch all groups assigned to a specific report
+    List<TransactionGroup> findByReportId(String reportId);
+
     @Modifying
     @Query("UPDATE TransactionGroup tg SET tg.report = :report WHERE tg.id IN :groupIds")
     void assignGroupsToReport(@Param("report") Report report, @Param("groupIds") List<String> groupIds);

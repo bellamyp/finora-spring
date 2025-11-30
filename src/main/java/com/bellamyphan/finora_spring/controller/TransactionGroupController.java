@@ -2,10 +2,13 @@ package com.bellamyphan.finora_spring.controller;
 
 import com.bellamyphan.finora_spring.dto.TransactionGroupCreateDto;
 import com.bellamyphan.finora_spring.dto.TransactionGroupResponseDto;
+import com.bellamyphan.finora_spring.entity.Report;
 import com.bellamyphan.finora_spring.entity.User;
+import com.bellamyphan.finora_spring.repository.ReportRepository;
 import com.bellamyphan.finora_spring.service.JwtService;
 import com.bellamyphan.finora_spring.service.TransactionGroupService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,6 +21,7 @@ import java.util.Map;
 public class TransactionGroupController {
 
     private final TransactionGroupService transactionGroupService;
+    private final ReportRepository reportRepository;
     private final JwtService jwtService;
 
     /**
@@ -57,6 +61,24 @@ public class TransactionGroupController {
                 .orElseThrow(() -> new RuntimeException("Transaction group not found: " + groupId));
 
         return ResponseEntity.ok(group);
+    }
+
+    @GetMapping("/report/{reportId}")
+    public ResponseEntity<List<TransactionGroupResponseDto>> getGroupsByReport(
+            @PathVariable("reportId") String reportId
+    ) {
+        // 1️⃣ Fetch the report and verify ownership
+        User user = jwtService.getCurrentUser();
+        Report report = reportRepository.findById(reportId)
+                .orElseThrow(() -> new RuntimeException("Report not found: " + reportId));
+
+        if (!report.getUser().getId().equals(user.getId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build(); // Forbidden
+        }
+
+        // 2️⃣ Fetch groups for this report
+        List<TransactionGroupResponseDto> groups = transactionGroupService.getTransactionGroupsByReport(reportId);
+        return ResponseEntity.ok(groups);
     }
 
     @PostMapping

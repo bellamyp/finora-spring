@@ -167,6 +167,31 @@ public class TransactionGroupService {
                 });
     }
 
+    public List<TransactionGroupResponseDto> getTransactionGroupsByReport(String reportId) {
+        List<TransactionGroup> groups = transactionGroupRepository.findByReportId(reportId);
+
+        return groups.stream()
+                .map(g -> {
+                    List<TransactionResponseDto> txDtos = g.getTransactions().stream()
+                            .map(this::toDto) // reuse your existing toDto method
+                            .sorted((a, b) -> {
+                                LocalDate d1 = a.getDate() != null ? LocalDate.parse(a.getDate()) : null;
+                                LocalDate d2 = b.getDate() != null ? LocalDate.parse(b.getDate()) : null;
+                                if (d1 == null && d2 == null) return 0;
+                                if (d1 == null) return 1;
+                                if (d2 == null) return -1;
+                                return d2.compareTo(d1);
+                            })
+                            .toList();
+
+                    TransactionGroupResponseDto dto = new TransactionGroupResponseDto();
+                    dto.setId(g.getId());
+                    dto.setTransactions(txDtos);
+                    return dto;
+                })
+                .toList();
+    }
+
     // ============================================================
     // CREATE GROUP
     // ============================================================
