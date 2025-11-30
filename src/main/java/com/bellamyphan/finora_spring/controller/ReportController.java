@@ -23,7 +23,7 @@ public class ReportController {
     // POST create new report
     // -----------------------
     @PostMapping("/new")
-    public ResponseEntity<ReportDto> createNextReport() {
+    public ResponseEntity<ReportDto> createNewReport() {
         // Get the current logged-in user from JWT token
         User user = jwtService.getCurrentUser();
 
