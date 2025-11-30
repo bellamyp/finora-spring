@@ -171,6 +171,7 @@ public class TransactionGroupService {
 
                     TransactionGroupResponseDto dto = new TransactionGroupResponseDto();
                     dto.setId(group.getId());
+                    dto.setReportId(group.getReport() != null ? group.getReport().getId() : null);
                     dto.setTransactions(transactions);
                     return dto;
                 });
