@@ -4,6 +4,7 @@ import com.bellamyphan.finora_spring.constant.BankTypeEnum;
 import com.bellamyphan.finora_spring.dto.BankCreateDto;
 import com.bellamyphan.finora_spring.dto.BankDto;
 import com.bellamyphan.finora_spring.entity.Bank;
+import com.bellamyphan.finora_spring.entity.BankGroup;
 import com.bellamyphan.finora_spring.entity.BankType;
 import com.bellamyphan.finora_spring.entity.User;
 import com.bellamyphan.finora_spring.service.BankService;
@@ -56,15 +57,25 @@ class BankControllerTest {
         bank.setName("Checking Bank");
         bank.setType(bankType);
         bank.setUser(mockUser);
+        bank.setGroup(null); // group can be null or mocked if needed
 
-        when(bankService.findBanksByUser(mockUser)).thenReturn(List.of(bank));
-        when(bankService.calculateBalance("bank123")).thenReturn(BigDecimal.valueOf(1000.50));
+        BankDto bankDto = new BankDto(
+                "bank123",
+                "group1",
+                "Checking Bank",
+                BankTypeEnum.CHECKING,
+                "user@example.com",
+                BigDecimal.valueOf(1000.50)
+        );
+
+        when(bankService.findBanksByUser(mockUser)).thenReturn(List.of(bankDto));
 
         List<BankDto> result = controller.getBanksByUser();
 
         assertEquals(1, result.size());
         BankDto dto = result.get(0);
         assertEquals("bank123", dto.getId());
+        assertEquals("group1", dto.getGroupId());
         assertEquals("Checking Bank", dto.getName());
         assertEquals(BankTypeEnum.CHECKING, dto.getType());
         assertEquals("user@example.com", dto.getEmail());
@@ -75,11 +86,15 @@ class BankControllerTest {
     void getBankById_returnsBankDetails() {
         BankType bankType = new BankType(BankTypeEnum.SAVINGS);
 
+        BankGroup group = new BankGroup();
+        group.setId("group1"); // <-- provide a valid groupId
+
         Bank bank = new Bank();
         bank.setId("bank123");
         bank.setName("Savings Bank");
         bank.setType(bankType);
         bank.setUser(mockUser);
+        bank.setGroup(group); // <-- set the group to avoid NPE
 
         when(bankService.findBankById("bank123")).thenReturn(bank);
         when(bankService.calculateBalance("bank123")).thenReturn(BigDecimal.valueOf(500.75));
@@ -91,6 +106,7 @@ class BankControllerTest {
         BankDto dto = response.getBody();
         assertNotNull(dto);
         assertEquals("bank123", dto.getId());
+        assertEquals("group1", dto.getGroupId());
         assertEquals("Savings Bank", dto.getName());
         assertEquals(BankTypeEnum.SAVINGS, dto.getType());
         assertEquals("user@example.com", dto.getEmail());
@@ -121,6 +137,7 @@ class BankControllerTest {
 
         BankDto savedBankDto = new BankDto(
                 "bank999",
+                "group1", // provide a groupId
                 "New Bank",
                 BankTypeEnum.CHECKING,
                 "user@example.com",
@@ -136,8 +153,10 @@ class BankControllerTest {
         BankDto dto = response.getBody();
         assertNotNull(dto);
         assertEquals("bank999", dto.getId());
+        assertEquals("group1", dto.getGroupId());
         assertEquals("New Bank", dto.getName());
         assertEquals(BankTypeEnum.CHECKING, dto.getType());
         assertEquals("user@example.com", dto.getEmail());
+        assertEquals(BigDecimal.ZERO, dto.getBalance());
     }
 }

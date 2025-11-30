@@ -54,7 +54,6 @@ class BankServiceTest {
     // -------------------------------------------------------
     @Test
     void createBank_success() {
-        // Input
         BankCreateDto dto = new BankCreateDto();
         dto.setName("My Bank");
         dto.setGroupId("group1");
@@ -65,36 +64,27 @@ class BankServiceTest {
         user.setId("u1");
         user.setEmail("user@example.com");
 
-        // Mock: ID generation
         when(nanoIdService.generateUniqueId(bankRepository))
                 .thenReturn("BANK12345");
 
-        // Mock: BankGroup lookup
         BankGroup group = new BankGroup();
         group.setId("group1");
+        when(bankGroupRepository.findById("group1")).thenReturn(Optional.of(group));
 
-        when(bankGroupRepository.findById("group1"))
-                .thenReturn(Optional.of(group));
-
-        // Mock: BankType lookup
         BankType type = new BankType(BankTypeEnum.CHECKING);
         when(bankTypeRepository.findByType(BankTypeEnum.CHECKING))
                 .thenReturn(Optional.of(type));
 
-        // Mock: Save
         when(bankRepository.save(any(Bank.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        // Execute
         BankDto result = bankService.createBank(dto, user);
 
-        // Verify output
         assertEquals("BANK12345", result.getId());
         assertEquals("My Bank", result.getName());
         assertEquals(BankTypeEnum.CHECKING, result.getType());
         assertEquals("user@example.com", result.getEmail());
 
-        // Verify save was called
         verify(bankRepository).save(any(Bank.class));
     }
 
@@ -104,8 +94,7 @@ class BankServiceTest {
         dto.setGroupId("missing");
         dto.setType(BankTypeEnum.CHECKING);
 
-        when(bankGroupRepository.findById("missing"))
-                .thenReturn(Optional.empty());
+        when(bankGroupRepository.findById("missing")).thenReturn(Optional.empty());
 
         User user = new User();
 
@@ -123,12 +112,8 @@ class BankServiceTest {
 
         BankGroup group = new BankGroup();
         group.setId("group1");
-
-        when(bankGroupRepository.findById("group1"))
-                .thenReturn(Optional.of(group));
-
-        when(bankTypeRepository.findByType(BankTypeEnum.CHECKING))
-                .thenReturn(Optional.empty());
+        when(bankGroupRepository.findById("group1")).thenReturn(Optional.of(group));
+        when(bankTypeRepository.findByType(BankTypeEnum.CHECKING)).thenReturn(Optional.empty());
 
         User user = new User();
 
@@ -146,19 +131,31 @@ class BankServiceTest {
         User user = new User();
         user.setId("user1");
 
-        Bank b1 = new Bank();
-        b1.setName("Bank A");
-        Bank b2 = new Bank();
-        b2.setName("Bank B");
+        BankGroup group1 = new BankGroup();
+        group1.setId("g1");
+        group1.setName("Group A");
 
-        when(bankRepository.findByUser(user))
-                .thenReturn(List.of(b1, b2));
+        BankGroup group2 = new BankGroup();
+        group2.setId("g2");
+        group2.setName("Group B");
 
-        List<Bank> result = bankService.findBanksByUser(user);
+        BankType type = new BankType(BankTypeEnum.CHECKING);
 
+        Bank b1 = new Bank("b1", "Bank 1", null, null, group2, type, user);
+        Bank b2 = new Bank("b2", "Bank 2", null, null, group1, type, user);
+
+        when(bankRepository.findByUser(user)).thenReturn(List.of(b1, b2));
+        when(transactionRepository.calculateBankBalance("b1")).thenReturn(BigDecimal.valueOf(100));
+        when(transactionRepository.calculateBankBalance("b2")).thenReturn(BigDecimal.valueOf(200));
+
+        List<BankDto> result = bankService.findBanksByUser(user);
+
+        // Should be sorted by group name: Group A, Group B
         assertEquals(2, result.size());
-        assertEquals("Bank A", result.get(0).getName());
-        assertEquals("Bank B", result.get(1).getName());
+        assertEquals("b2", result.get(0).getId()); // Bank 2 -> Group A
+        assertEquals("b1", result.get(1).getId()); // Bank 1 -> Group B
+        assertEquals(BigDecimal.valueOf(200), result.get(0).getBalance());
+        assertEquals(BigDecimal.valueOf(100), result.get(1).getBalance());
     }
 
     @Test
@@ -166,20 +163,18 @@ class BankServiceTest {
         IllegalArgumentException ex =
                 assertThrows(IllegalArgumentException.class,
                         () -> bankService.findBanksByUser(null));
-
         assertEquals("User cannot be null", ex.getMessage());
     }
 
     // -------------------------------------------------------
-    // FIND BY ID
+    // FIND BANK BY ID
     // -------------------------------------------------------
     @Test
     void findBankById_success() {
         Bank bank = new Bank();
         bank.setId("bank123");
 
-        when(bankRepository.findById("bank123"))
-                .thenReturn(Optional.of(bank));
+        when(bankRepository.findById("bank123")).thenReturn(Optional.of(bank));
 
         Bank found = bankService.findBankById("bank123");
 
@@ -188,8 +183,7 @@ class BankServiceTest {
 
     @Test
     void findBankById_notFound_throws() {
-        when(bankRepository.findById("missing"))
-                .thenReturn(Optional.empty());
+        when(bankRepository.findById("missing")).thenReturn(Optional.empty());
 
         RuntimeException ex = assertThrows(RuntimeException.class,
                 () -> bankService.findBankById("missing"));
