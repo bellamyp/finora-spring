@@ -2,6 +2,7 @@ package com.bellamyphan.finora_spring.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -9,6 +10,7 @@ import java.time.LocalDate;
 
 @Data
 @NoArgsConstructor
+@AllArgsConstructor
 @Entity
 @Table(name = "reports")
 public class Report {
@@ -27,11 +29,4 @@ public class Report {
 
     @Column(name = "is_posted", nullable = false)
     private boolean isPosted = false;
-
-    // Constructor without ID (Java can generate NanoID separately)
-    public Report(LocalDate month, User user, boolean isPosted) {
-        this.month = month;
-        this.user = user;
-        this.isPosted = isPosted;
-    }
 }

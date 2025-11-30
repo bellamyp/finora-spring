@@ -56,7 +56,8 @@ public class SecurityConfig {
                                 "/api/brands/**",
                                 "/api/locations/**",
                                 "/api/transaction-groups/**",
-                                "/api/repeat-groups/**")
+                                "/api/repeat-groups/**",
+                                "/api/reports/**")
                         .hasRole("USER")
 
                         // ADMIN role can access everything else

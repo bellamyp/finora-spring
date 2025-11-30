@@ -96,6 +96,45 @@ public class TransactionGroupService {
     }
 
     // ============================================================
+    // GET FULLY POSTED GROUPS FOR REPORT FEATURE
+    // ============================================================
+    public List<TransactionGroupResponseDto> getFullyPostedGroupsForNewReport(User user) {
+
+        // 1️⃣ Fetch candidate groups for the current user
+        List<TransactionGroup> groups = transactionGroupRepository.findCandidateGroups(user.getId());
+
+        // 2️⃣ Filter out groups that have any pending transactions
+        List<TransactionGroup> fullyPostedGroups = groups.stream()
+                .filter(g -> g.getTransactions().stream()
+                        .noneMatch(tx -> pendingTransactionRepository.existsByTransactionId(tx.getId()))
+                )
+                .toList();
+
+        // 3️⃣ Map to DTOs
+        return fullyPostedGroups.stream()
+                .map(g -> {
+                    List<TransactionResponseDto> txDtos = g.getTransactions().stream()
+                            .map(this::toDto)
+                            .sorted((a, b) -> {
+                                // descending by date
+                                LocalDate d1 = a.getDate() != null ? LocalDate.parse(a.getDate()) : null;
+                                LocalDate d2 = b.getDate() != null ? LocalDate.parse(b.getDate()) : null;
+                                if (d1 == null && d2 == null) return 0;
+                                if (d1 == null) return 1;
+                                if (d2 == null) return -1;
+                                return d2.compareTo(d1);
+                            })
+                            .toList();
+
+                    TransactionGroupResponseDto dto = new TransactionGroupResponseDto();
+                    dto.setId(g.getId());
+                    dto.setTransactions(txDtos);
+                    return dto;
+                })
+                .toList();
+    }
+
+    // ============================================================
     // REPEAT GROUPS (optimized)
     // ============================================================
     public List<TransactionGroupResponseDto> getRepeatTransactionGroupsForUser(User user) {
@@ -135,6 +174,31 @@ public class TransactionGroupService {
                     dto.setTransactions(transactions);
                     return dto;
                 });
+    }
+
+    public List<TransactionGroupResponseDto> getTransactionGroupsByReport(String reportId) {
+        List<TransactionGroup> groups = transactionGroupRepository.findByReportId(reportId);
+
+        return groups.stream()
+                .map(g -> {
+                    List<TransactionResponseDto> txDtos = g.getTransactions().stream()
+                            .map(this::toDto) // reuse your existing toDto method
+                            .sorted((a, b) -> {
+                                LocalDate d1 = a.getDate() != null ? LocalDate.parse(a.getDate()) : null;
+                                LocalDate d2 = b.getDate() != null ? LocalDate.parse(b.getDate()) : null;
+                                if (d1 == null && d2 == null) return 0;
+                                if (d1 == null) return 1;
+                                if (d2 == null) return -1;
+                                return d2.compareTo(d1);
+                            })
+                            .toList();
+
+                    TransactionGroupResponseDto dto = new TransactionGroupResponseDto();
+                    dto.setId(g.getId());
+                    dto.setTransactions(txDtos);
+                    return dto;
+                })
+                .toList();
     }
 
     // ============================================================
@@ -254,8 +318,8 @@ public class TransactionGroupService {
         return transactionRepository.save(tx);
     }
 
-    private PendingTransaction savePendingTransaction(Transaction tx) {
-        return pendingTransactionRepository.save(new PendingTransaction(tx));
+    private void savePendingTransaction(Transaction tx) {
+        pendingTransactionRepository.save(new PendingTransaction(tx));
     }
 
     private void deleteAllTransactionsAndGroup(List<Transaction> transactions, TransactionGroup group) {
