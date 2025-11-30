@@ -1,6 +1,6 @@
 package com.bellamyphan.finora_spring.controller;
 
-import com.bellamyphan.finora_spring.entity.RepeatTransactionGroup;
+import com.bellamyphan.finora_spring.dto.TransactionGroupResponseDto;
 import com.bellamyphan.finora_spring.entity.TransactionGroup;
 import com.bellamyphan.finora_spring.entity.User;
 import com.bellamyphan.finora_spring.service.JwtService;
@@ -44,23 +44,18 @@ public class RepeatTransactionGroupController {
     }
 
     @PostMapping("/{groupId}")
-    public ResponseEntity<?> markAsRepeat(@PathVariable String groupId) {
-        // Get current user
+    public ResponseEntity<TransactionGroupResponseDto> markAsRepeat(@PathVariable String groupId) {
         User user = jwtService.getCurrentUser();
-
-        // Fetch group entity
         TransactionGroup group = groupService.fetchTransactionGroup(groupId);
 
-        // Verify ownership via transactions' banks
         List<?> userTransactions = groupService.getUserTransactionsForGroup(group, user);
         if (userTransactions.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body("You are not allowed to mark this empty group as repeat");
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
-        // Mark as repeat
-        RepeatTransactionGroup repeatGroup = repeatTransactionGroupService.markAsRepeat(group);
-        return ResponseEntity.ok(repeatGroup);
+        // Use the updated service that returns DTO
+        TransactionGroupResponseDto dto = repeatTransactionGroupService.markAsRepeat(group, user);
+        return ResponseEntity.ok(dto);
     }
 
     @DeleteMapping("/{groupId}")

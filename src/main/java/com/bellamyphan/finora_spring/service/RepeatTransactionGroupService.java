@@ -1,7 +1,9 @@
 package com.bellamyphan.finora_spring.service;
 
+import com.bellamyphan.finora_spring.dto.TransactionGroupResponseDto;
 import com.bellamyphan.finora_spring.entity.RepeatTransactionGroup;
 import com.bellamyphan.finora_spring.entity.TransactionGroup;
+import com.bellamyphan.finora_spring.entity.User;
 import com.bellamyphan.finora_spring.repository.RepeatTransactionGroupRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -12,19 +14,25 @@ import org.springframework.transaction.annotation.Transactional;
 public class RepeatTransactionGroupService {
 
     private final RepeatTransactionGroupRepository repeatRepository;
+    private final TransactionGroupService transactionGroupService;
 
     /**
      * Marks the given transaction group as repeat.
      * If already marked, returns the existing entry.
      */
     @Transactional
-    public RepeatTransactionGroup markAsRepeat(TransactionGroup group) {
+    public TransactionGroupResponseDto markAsRepeat(TransactionGroup group, User user) {
         // Check if already exists
-        return repeatRepository.findById(group.getId())
+        repeatRepository.findById(group.getId())
                 .orElseGet(() -> {
                     RepeatTransactionGroup repeatGroup = new RepeatTransactionGroup(group);
                     return repeatRepository.save(repeatGroup);
                 });
+
+        // Return DTO for FE
+        return transactionGroupService
+                .getTransactionGroupByIdForUser(group.getId(), user)
+                .orElseThrow(() -> new RuntimeException("Transaction group not found after marking as repeat"));
     }
 
     /**
