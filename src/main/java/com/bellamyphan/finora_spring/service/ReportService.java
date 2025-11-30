@@ -32,54 +32,46 @@ public class ReportService {
 
         // 1️⃣ Check if user has existing reports
         Optional<Report> lastReportOpt = reportRepository.findTopByUserIdOrderByMonthDesc(user.getId());
-        List<TransactionGroupResponseDto> fullyPostedGroups = null;
+
+        // 2️⃣ Fetch fully posted groups for new report (always!)
+        List<TransactionGroupResponseDto> fullyPostedGroups = transactionGroupService
+                .getFullyPostedGroupsForNewReport(user);
 
         if (lastReportOpt.isPresent()) {
             // Next month after latest report
             nextMonth = lastReportOpt.get().getMonth().plusMonths(1).withDayOfMonth(1);
+        } else if (!fullyPostedGroups.isEmpty()) {
+            // Earliest transaction in the earliest group
+            LocalDate earliestDate = fullyPostedGroups.stream()
+                    .flatMap(g -> g.getTransactions().stream())
+                    .map(tx -> tx.getDate() != null ? LocalDate.parse(tx.getDate()) : null)
+                    .filter(Objects::nonNull)
+                    .min(LocalDate::compareTo)
+                    .orElse(LocalDate.now());
+            nextMonth = earliestDate.withDayOfMonth(1);
         } else {
-            // 2️⃣ Else, use earliest fully posted transaction group's month
-            fullyPostedGroups = transactionGroupService.getFullyPostedGroupsForNewReport(user);
-
-            if (!fullyPostedGroups.isEmpty()) {
-                // Earliest transaction in the earliest group
-                LocalDate earliestDate = fullyPostedGroups.stream()
-                        .flatMap(g -> g.getTransactions().stream())
-                        .map(tx -> tx.getDate() != null ? LocalDate.parse(tx.getDate()) : null)
-                        .filter(Objects::nonNull)
-                        .min(LocalDate::compareTo)
-                        .orElse(LocalDate.now());
-                nextMonth = earliestDate.withDayOfMonth(1);
-            } else {
-                // 3️⃣ Else, use current month
-                nextMonth = LocalDate.now().withDayOfMonth(1);
-            }
+            // Default to current month
+            nextMonth = LocalDate.now().withDayOfMonth(1);
         }
 
-        // 4️⃣ Create and save the report entity
+        // 3️⃣ Create and save the report
         String id = nanoIdService.generateUniqueId(reportRepository);
         Report report = new Report(id, nextMonth, user, false);
         reportRepository.save(report);
+        reportRepository.flush(); // ensure report exists in DB
 
-        // 5️⃣ Assign fully posted groups to this report (reuse list if available)
-        if (fullyPostedGroups != null && !fullyPostedGroups.isEmpty()) {
-            List<TransactionGroup> groupsToInclude = transactionGroupRepository
-                    .findAllById(fullyPostedGroups.stream()
-                            .map(TransactionGroupResponseDto::getId)
-                            .toList());
-            groupsToInclude.forEach(g -> g.setReport(report));
-            transactionGroupRepository.saveAll(groupsToInclude);
-        }
-
-        // 5️⃣ Bulk assign fully posted groups to this report
-        if (fullyPostedGroups != null && !fullyPostedGroups.isEmpty()) {
+        // 4️⃣ Assign fully posted groups (if any)
+        if (!fullyPostedGroups.isEmpty()) {
             List<String> groupIds = fullyPostedGroups.stream()
                     .map(TransactionGroupResponseDto::getId)
                     .toList();
-            transactionGroupRepository.assignGroupsToReport(report, groupIds);
+
+            List<TransactionGroup> groups = transactionGroupRepository.findAllById(groupIds);
+            groups.forEach(tg -> tg.setReport(report));
+            transactionGroupRepository.saveAll(groups);
         }
 
-        // 6️⃣ Map to DTO
+        // 5️⃣ Map to DTO
         ReportDto dto = new ReportDto();
         dto.setId(report.getId());
         dto.setUserId(user.getId());

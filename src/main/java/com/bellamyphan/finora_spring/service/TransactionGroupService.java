@@ -99,10 +99,19 @@ public class TransactionGroupService {
     // GET FULLY POSTED GROUPS FOR REPORT FEATURE
     // ============================================================
     public List<TransactionGroupResponseDto> getFullyPostedGroupsForNewReport(User user) {
-        List<TransactionGroup> groups = transactionGroupRepository
-                .getFullyPostedGroupsForNewReport(user.getId());
 
-        return groups.stream()
+        // 1️⃣ Fetch candidate groups for the current user
+        List<TransactionGroup> groups = transactionGroupRepository.findCandidateGroups(user.getId());
+
+        // 2️⃣ Filter out groups that have any pending transactions
+        List<TransactionGroup> fullyPostedGroups = groups.stream()
+                .filter(g -> g.getTransactions().stream()
+                        .allMatch(tx -> !pendingTransactionRepository.existsByTransactionId(tx.getId()))
+                )
+                .toList();
+
+        // 3️⃣ Map to DTOs
+        return fullyPostedGroups.stream()
                 .map(g -> {
                     List<TransactionResponseDto> txDtos = g.getTransactions().stream()
                             .map(this::toDto)
