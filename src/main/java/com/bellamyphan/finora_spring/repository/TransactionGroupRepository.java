@@ -1,9 +1,7 @@
 package com.bellamyphan.finora_spring.repository;
 
-import com.bellamyphan.finora_spring.entity.Report;
 import com.bellamyphan.finora_spring.entity.TransactionGroup;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;

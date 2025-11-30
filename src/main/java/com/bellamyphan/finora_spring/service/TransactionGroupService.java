@@ -106,7 +106,7 @@ public class TransactionGroupService {
         // 2️⃣ Filter out groups that have any pending transactions
         List<TransactionGroup> fullyPostedGroups = groups.stream()
                 .filter(g -> g.getTransactions().stream()
-                        .allMatch(tx -> !pendingTransactionRepository.existsByTransactionId(tx.getId()))
+                        .noneMatch(tx -> pendingTransactionRepository.existsByTransactionId(tx.getId()))
                 )
                 .toList();
 
