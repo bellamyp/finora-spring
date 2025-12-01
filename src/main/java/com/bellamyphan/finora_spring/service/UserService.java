@@ -8,6 +8,7 @@ import com.bellamyphan.finora_spring.repository.RoleRepository;
 import com.bellamyphan.finora_spring.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -21,6 +22,7 @@ public class UserService {
     private final NanoIdService nanoIdService;
     private final PasswordService passwordService;
 
+    @Transactional
     public User createUser(UserRequestDto userDto) {
 
         // 1. Validate email

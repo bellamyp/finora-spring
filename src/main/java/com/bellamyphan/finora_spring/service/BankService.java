@@ -12,6 +12,7 @@ import com.bellamyphan.finora_spring.repository.BankTypeRepository;
 import com.bellamyphan.finora_spring.repository.TransactionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -30,6 +31,7 @@ public class BankService {
     /**
      * Save a new bank with unique 10-char ID
      */
+    @Transactional
     public BankDto createBank(BankCreateDto createDto, User user) {
         String bankId = nanoIdService.generateUniqueId(bankRepository);
         BankGroup group = bankGroupRepository.findById(createDto.getGroupId())

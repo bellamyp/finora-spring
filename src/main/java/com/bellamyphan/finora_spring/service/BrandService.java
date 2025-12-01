@@ -6,6 +6,7 @@ import com.bellamyphan.finora_spring.entity.Brand;
 import com.bellamyphan.finora_spring.repository.BrandRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -26,6 +27,7 @@ public class BrandService {
                 .toList();
     }
 
+    @Transactional
     public BrandDto createBrand(BrandCreateDto request) {
         // Normalize name and URL
         String normalizedName = request.getName().trim();

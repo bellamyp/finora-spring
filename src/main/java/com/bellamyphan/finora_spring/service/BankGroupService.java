@@ -7,6 +7,7 @@ import com.bellamyphan.finora_spring.entity.User;
 import com.bellamyphan.finora_spring.repository.BankGroupRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -17,6 +18,7 @@ public class BankGroupService {
     private final BankGroupRepository bankGroupRepository;
     private final NanoIdService nanoIdService;
 
+    @Transactional
     public BankGroupDto createBankGroup(BankGroupCreateDto request, User user) {
         // Make sure name is not duplicated for the current user
         if (bankGroupRepository.existsByNameAndUser(request.getName(), user)) {
