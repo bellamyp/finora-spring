@@ -6,6 +6,7 @@ import com.bellamyphan.finora_spring.entity.Location;
 import com.bellamyphan.finora_spring.repository.LocationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -29,6 +30,7 @@ public class LocationService {
     /**
      * Create a new location, check for duplicates (ignore case)
      */
+    @Transactional
     public LocationDto createLocation(LocationCreateDto request) {
         String cityNormalized = request.getCity().trim();
         String stateNormalized = request.getState().trim();

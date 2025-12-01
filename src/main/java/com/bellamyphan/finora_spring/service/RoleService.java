@@ -5,6 +5,7 @@ import com.bellamyphan.finora_spring.entity.Role;
 import com.bellamyphan.finora_spring.repository.RoleRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +24,7 @@ public class RoleService {
     /**
      * Save a Role with a generated unique ID. Retries up to 10 times if ID collision occurs.
      */
+    @Transactional
     public Role save(Role role) {
         String newId = nanoIdService.generateUniqueId(roleRepository);
         role.setId(newId);
