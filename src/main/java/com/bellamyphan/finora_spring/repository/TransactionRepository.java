@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 
 @Repository
@@ -35,6 +36,9 @@ public interface TransactionRepository extends JpaRepository<Transaction, String
               )
             """)
     List<Transaction> findPendingByUserId(@Param("userId") String userId);
+
+    List<Transaction> findByBankIdAndDateBetweenOrderByDateAsc(
+            String bankId, LocalDate start, LocalDate end);
 
     @Query("""
         SELECT t
@@ -66,4 +70,15 @@ public interface TransactionRepository extends JpaRepository<Transaction, String
       )
     """)
     BigDecimal calculatePostedBankBalance(@Param("bankId") String bankId);
+
+    @Query("""
+    SELECT COALESCE(SUM(t.amount), 0)
+    FROM Transaction t
+    WHERE t.bank.id = :bankId
+      AND t.date < :startDate
+    """)
+    BigDecimal calculateBalanceBeforeDate(
+            @Param("bankId") String bankId,
+            @Param("startDate") LocalDate startDate
+    );
 }

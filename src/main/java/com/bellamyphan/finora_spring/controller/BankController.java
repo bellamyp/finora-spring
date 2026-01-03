@@ -1,6 +1,7 @@
 package com.bellamyphan.finora_spring.controller;
 
 import com.bellamyphan.finora_spring.dto.BankCreateDto;
+import com.bellamyphan.finora_spring.dto.BankDailyBalanceDto;
 import com.bellamyphan.finora_spring.dto.BankDto;
 import com.bellamyphan.finora_spring.entity.Bank;
 import com.bellamyphan.finora_spring.entity.User;
@@ -59,6 +60,21 @@ public class BankController {
         );
 
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{id}/daily-balance")
+    public ResponseEntity<List<BankDailyBalanceDto>> getDailyBalance(@PathVariable String id) {
+
+        User user = jwtService.getCurrentUser();
+        Bank bank = bankService.findBankById(id);
+
+        if (!bank.getUser().getId().equals(user.getId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        return ResponseEntity.ok(
+                bankService.calculateLastNDaysBalance(id, 30)
+        );
     }
 
     // -----------------------
