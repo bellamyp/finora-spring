@@ -48,6 +48,22 @@ public interface TransactionRepository extends JpaRepository<Transaction, String
             @Param("userId") String userId
     );
 
-    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE t.bank.id = :bankId")
-    BigDecimal calculateBankBalance(@Param("bankId") String bankId);
+    @Query("""
+    SELECT COALESCE(SUM(t.amount), 0)
+    FROM Transaction t
+    WHERE t.bank.id = :bankId
+    """)
+    BigDecimal calculatePendingBankBalance(@Param("bankId") String bankId);
+
+    @Query("""
+    SELECT COALESCE(SUM(t.amount), 0)
+    FROM Transaction t
+    WHERE t.bank.id = :bankId
+      AND NOT EXISTS (
+            SELECT 1
+            FROM PendingTransaction p
+            WHERE p.transaction.id = t.id
+      )
+    """)
+    BigDecimal calculatePostedBankBalance(@Param("bankId") String bankId);
 }
