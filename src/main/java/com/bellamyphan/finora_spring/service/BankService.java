@@ -1,11 +1,9 @@
 package com.bellamyphan.finora_spring.service;
 
 import com.bellamyphan.finora_spring.dto.BankCreateDto;
+import com.bellamyphan.finora_spring.dto.BankDailyBalanceDto;
 import com.bellamyphan.finora_spring.dto.BankDto;
-import com.bellamyphan.finora_spring.entity.Bank;
-import com.bellamyphan.finora_spring.entity.BankGroup;
-import com.bellamyphan.finora_spring.entity.BankType;
-import com.bellamyphan.finora_spring.entity.User;
+import com.bellamyphan.finora_spring.entity.*;
 import com.bellamyphan.finora_spring.repository.BankGroupRepository;
 import com.bellamyphan.finora_spring.repository.BankRepository;
 import com.bellamyphan.finora_spring.repository.BankTypeRepository;
@@ -15,7 +13,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.List;
+import java.time.LocalDate;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -95,39 +94,44 @@ public class BankService {
         return transactionRepository.calculatePostedBankBalance(bankId);
     }
 
-//    public List<BankDailyBalanceDto> calculateLastNDaysBalance(String bankId, int days) {
-//
-//        // Todo: days must be a positive number.
-//
-//        LocalDate today = LocalDate.now();
-//        LocalDate startDate = today.minusDays(days - 1);
-//
-//        // 1️⃣ Get starting balance before startDate
-//        BigDecimal startingBalance = transactionRepository.calculateBalanceBeforeDate(bankId, startDate);
-//
-//        // 2️⃣ Get all transactions in last N days
-//        List<Transaction> transactions = transactionRepository.findByBankIdAndDateBetweenOrderByDateAsc(
-//                bankId, startDate.atStartOfDay(), today.plusDays(1).atStartOfDay());
-//
-//        // 3️⃣ Group by date
-//        Map<LocalDate, BigDecimal> dailySums = transactions.stream()
-//                .collect(Collectors.groupingBy(
-//                        t -> t.getDate().toLocalDate(),
-//                        TreeMap::new,
-//                        Collectors.reducing(BigDecimal.ZERO, Transaction::getAmount, BigDecimal::add)
-//                ));
-//
-//        // 4️⃣ Build cumulative balances
-//        List<BankDailyBalanceDto> dailyBalances = new ArrayList<>();
-//        BigDecimal runningBalance = startingBalance;
-//
-//        for (int i = 0; i < days; i++) {
-//            LocalDate date = startDate.plusDays(i);
-//            BigDecimal dailyAmount = dailySums.getOrDefault(date, BigDecimal.ZERO);
-//            runningBalance = runningBalance.add(dailyAmount);
-//            dailyBalances.add(new BankDailyBalanceDto(date, runningBalance));
-//        }
-//
-//        return dailyBalances;
-//    }
+    public List<BankDailyBalanceDto> calculateLastNDaysBalance(String bankId, int days) {
+
+        if (days <= 0) {
+            throw new IllegalArgumentException("Days must be positive");
+        }
+
+        LocalDate today = LocalDate.now();
+        LocalDate startDate = today.minusDays(days - 1);
+
+        // 1️⃣ Get starting balance before startDate
+        BigDecimal startingBalance = transactionRepository.calculateBalanceBeforeDate(bankId, startDate);
+
+        // 2️⃣ Transactions within the last N days (inclusive)
+        List<Transaction> transactions = transactionRepository.findByBankIdAndDateBetweenOrderByDateAsc(
+                bankId, startDate, today);
+
+        // 3️⃣ Group transactions by date
+        Map<LocalDate, BigDecimal> dailySums = transactions.stream()
+                .collect(Collectors.groupingBy(
+                        Transaction::getDate,
+                        TreeMap::new,
+                        Collectors.reducing(BigDecimal.ZERO, Transaction::getAmount, BigDecimal::add)
+                ));
+
+        // 4️⃣ Build cumulative balances
+        List<BankDailyBalanceDto> dailyBalances = new ArrayList<>();
+        BigDecimal runningBalance = startingBalance;
+
+        for (int i = 0; i < days; i++) {
+            LocalDate date = startDate.plusDays(i);
+            BigDecimal dailyAmount = dailySums.getOrDefault(date, BigDecimal.ZERO);
+            runningBalance = runningBalance.add(dailyAmount);
+            dailyBalances.add(new BankDailyBalanceDto(date, runningBalance));
+        }
+
+        // 5️⃣ Reverse the list so the newest date is on top
+        Collections.reverse(dailyBalances);
+
+        return dailyBalances;
+    }
 }
