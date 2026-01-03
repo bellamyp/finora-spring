@@ -16,5 +16,6 @@ public class BankDto {
     private String name;
     private BankTypeEnum type;
     private String email;
-    private BigDecimal balance;
+    private BigDecimal pendingBalance;
+    private BigDecimal postedBalance;
 }

@@ -45,7 +45,8 @@ public class BankController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
-        BigDecimal balance = bankService.calculateBalance(id);
+        BigDecimal pendingBalance = bankService.calculatePendingBalance(id);
+        BigDecimal postedBalance = bankService.calculatePostedBalance(id);
 
         BankDto response = new BankDto(
                 bank.getId(),
@@ -53,7 +54,8 @@ public class BankController {
                 bank.getName(),
                 bank.getType().getType(),
                 bank.getUser().getEmail(),
-                balance
+                pendingBalance,
+                postedBalance
         );
 
         return ResponseEntity.ok(response);

@@ -145,17 +145,29 @@ class BankServiceTest {
         Bank b2 = new Bank("b2", "Bank 2", null, null, group1, type, user);
 
         when(bankRepository.findByUser(user)).thenReturn(List.of(b1, b2));
-        when(transactionRepository.calculateBankBalance("b1")).thenReturn(BigDecimal.valueOf(100));
-        when(transactionRepository.calculateBankBalance("b2")).thenReturn(BigDecimal.valueOf(200));
+
+        // Mock both pending and posted balances
+        when(transactionRepository.calculatePendingBankBalance("b1")).thenReturn(BigDecimal.valueOf(100));
+        when(transactionRepository.calculatePostedBankBalance("b1")).thenReturn(BigDecimal.valueOf(500));
+
+        when(transactionRepository.calculatePendingBankBalance("b2")).thenReturn(BigDecimal.valueOf(200));
+        when(transactionRepository.calculatePostedBankBalance("b2")).thenReturn(BigDecimal.valueOf(600));
 
         List<BankDto> result = bankService.findBanksByUser(user);
 
         // Should be sorted by group name: Group A, Group B
         assertEquals(2, result.size());
-        assertEquals("b2", result.get(0).getId()); // Bank 2 -> Group A
-        assertEquals("b1", result.get(1).getId()); // Bank 1 -> Group B
-        assertEquals(BigDecimal.valueOf(200), result.get(0).getBalance());
-        assertEquals(BigDecimal.valueOf(100), result.get(1).getBalance());
+
+        BankDto first = result.get(0); // Bank 2 -> Group A
+        BankDto second = result.get(1); // Bank 1 -> Group B
+
+        assertEquals("b2", first.getId());
+        assertEquals(BigDecimal.valueOf(200), first.getPendingBalance());
+        assertEquals(BigDecimal.valueOf(600), first.getPostedBalance());
+
+        assertEquals("b1", second.getId());
+        assertEquals(BigDecimal.valueOf(100), second.getPendingBalance());
+        assertEquals(BigDecimal.valueOf(500), second.getPostedBalance());
     }
 
     @Test
@@ -195,11 +207,11 @@ class BankServiceTest {
     // CALCULATE BALANCE
     // -------------------------------------------------------
     @Test
-    void calculateBalance_success() {
-        when(transactionRepository.calculateBankBalance("bank123"))
+    void calculatePendingBalance_success() {
+        when(transactionRepository.calculatePendingBankBalance("bank123"))
                 .thenReturn(BigDecimal.valueOf(455.75));
 
-        BigDecimal balance = bankService.calculateBalance("bank123");
+        BigDecimal balance = bankService.calculatePendingBalance("bank123");
 
         assertEquals(BigDecimal.valueOf(455.75), balance);
     }

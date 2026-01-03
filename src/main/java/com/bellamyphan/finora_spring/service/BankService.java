@@ -62,14 +62,16 @@ public class BankService {
                 .toList();
         return banks.stream()
                 .map(bank -> {
-                    BigDecimal balance = calculateBalance(bank.getId());
+                    BigDecimal pendingBalance = calculatePendingBalance(bank.getId());
+                    BigDecimal postedBalance = calculatePostedBalance(bank.getId());
                     return new BankDto(
                             bank.getId(),
                             bank.getGroup().getId(),
                             bank.getName(),
                             bank.getType().getType(),
                             bank.getUser().getEmail(),
-                            balance
+                            pendingBalance,
+                            postedBalance
                     );
                 })
                 .collect(Collectors.toList());
@@ -83,8 +85,49 @@ public class BankService {
                 .orElseThrow(() -> new RuntimeException("Bank not found: " + bankId));
     }
 
-    // Calculate bank balance
-    public BigDecimal calculateBalance(String bankId) {
-        return transactionRepository.calculateBankBalance(bankId);
+    // Calculate pending bank balance
+    public BigDecimal calculatePendingBalance(String bankId) {
+        return transactionRepository.calculatePendingBankBalance(bankId);
     }
+
+    // Calculate posted bank balance
+    public BigDecimal calculatePostedBalance(String bankId) {
+        return transactionRepository.calculatePostedBankBalance(bankId);
+    }
+
+//    public List<BankDailyBalanceDto> calculateLastNDaysBalance(String bankId, int days) {
+//
+//        // Todo: days must be a positive number.
+//
+//        LocalDate today = LocalDate.now();
+//        LocalDate startDate = today.minusDays(days - 1);
+//
+//        // 1️⃣ Get starting balance before startDate
+//        BigDecimal startingBalance = transactionRepository.calculateBalanceBeforeDate(bankId, startDate);
+//
+//        // 2️⃣ Get all transactions in last N days
+//        List<Transaction> transactions = transactionRepository.findByBankIdAndDateBetweenOrderByDateAsc(
+//                bankId, startDate.atStartOfDay(), today.plusDays(1).atStartOfDay());
+//
+//        // 3️⃣ Group by date
+//        Map<LocalDate, BigDecimal> dailySums = transactions.stream()
+//                .collect(Collectors.groupingBy(
+//                        t -> t.getDate().toLocalDate(),
+//                        TreeMap::new,
+//                        Collectors.reducing(BigDecimal.ZERO, Transaction::getAmount, BigDecimal::add)
+//                ));
+//
+//        // 4️⃣ Build cumulative balances
+//        List<BankDailyBalanceDto> dailyBalances = new ArrayList<>();
+//        BigDecimal runningBalance = startingBalance;
+//
+//        for (int i = 0; i < days; i++) {
+//            LocalDate date = startDate.plusDays(i);
+//            BigDecimal dailyAmount = dailySums.getOrDefault(date, BigDecimal.ZERO);
+//            runningBalance = runningBalance.add(dailyAmount);
+//            dailyBalances.add(new BankDailyBalanceDto(date, runningBalance));
+//        }
+//
+//        return dailyBalances;
+//    }
 }
