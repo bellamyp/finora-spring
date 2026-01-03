@@ -19,7 +19,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -49,15 +48,7 @@ class BankControllerTest {
     }
 
     @Test
-    void getBanksByUser_returnsBankListWithBalance() {
-        BankType bankType = new BankType(BankTypeEnum.CHECKING);
-
-        Bank bank = new Bank();
-        bank.setId("bank123");
-        bank.setName("Checking Bank");
-        bank.setType(bankType);
-        bank.setUser(mockUser);
-        bank.setGroup(null); // group can be null or mocked if needed
+    void getBanksByUser_returnsBankListWithBalances() {
 
         BankDto bankDto = new BankDto(
                 "bank123",
@@ -65,7 +56,8 @@ class BankControllerTest {
                 "Checking Bank",
                 BankTypeEnum.CHECKING,
                 "user@example.com",
-                BigDecimal.valueOf(1000.50)
+                BigDecimal.valueOf(1000.50), // pendingBalance
+                BigDecimal.valueOf(2000.75)  // postedBalance
         );
 
         when(bankService.findBanksByUser(mockUser)).thenReturn(List.of(bankDto));
@@ -79,7 +71,8 @@ class BankControllerTest {
         assertEquals("Checking Bank", dto.getName());
         assertEquals(BankTypeEnum.CHECKING, dto.getType());
         assertEquals("user@example.com", dto.getEmail());
-        assertEquals(BigDecimal.valueOf(1000.50), dto.getBalance());
+        assertEquals(BigDecimal.valueOf(1000.50), dto.getPendingBalance());
+        assertEquals(BigDecimal.valueOf(2000.75), dto.getPostedBalance());
     }
 
     @Test
@@ -87,17 +80,18 @@ class BankControllerTest {
         BankType bankType = new BankType(BankTypeEnum.SAVINGS);
 
         BankGroup group = new BankGroup();
-        group.setId("group1"); // <-- provide a valid groupId
+        group.setId("group1");
 
         Bank bank = new Bank();
         bank.setId("bank123");
         bank.setName("Savings Bank");
         bank.setType(bankType);
         bank.setUser(mockUser);
-        bank.setGroup(group); // <-- set the group to avoid NPE
+        bank.setGroup(group);
 
         when(bankService.findBankById("bank123")).thenReturn(bank);
-        when(bankService.calculateBalance("bank123")).thenReturn(BigDecimal.valueOf(500.75));
+        when(bankService.calculatePendingBalance("bank123")).thenReturn(BigDecimal.valueOf(500.75));
+        when(bankService.calculatePostedBalance("bank123")).thenReturn(BigDecimal.valueOf(1200.25));
 
         ResponseEntity<BankDto> response = controller.getBankById("bank123");
 
@@ -110,7 +104,8 @@ class BankControllerTest {
         assertEquals("Savings Bank", dto.getName());
         assertEquals(BankTypeEnum.SAVINGS, dto.getType());
         assertEquals("user@example.com", dto.getEmail());
-        assertEquals(BigDecimal.valueOf(500.75), dto.getBalance());
+        assertEquals(BigDecimal.valueOf(500.75), dto.getPendingBalance());
+        assertEquals(BigDecimal.valueOf(1200.25), dto.getPostedBalance());
     }
 
     @Test
@@ -133,15 +128,15 @@ class BankControllerTest {
         BankCreateDto createDto = new BankCreateDto();
         createDto.setName("New Bank");
         createDto.setType(BankTypeEnum.CHECKING);
-        createDto.setOpeningDate(LocalDate.now());
 
         BankDto savedBankDto = new BankDto(
                 "bank999",
-                "group1", // provide a groupId
+                "group1",
                 "New Bank",
                 BankTypeEnum.CHECKING,
                 "user@example.com",
-                BigDecimal.ZERO
+                BigDecimal.ZERO, // pendingBalance
+                BigDecimal.ZERO  // postedBalance
         );
 
         when(bankService.createBank(createDto, mockUser)).thenReturn(savedBankDto);
@@ -157,6 +152,7 @@ class BankControllerTest {
         assertEquals("New Bank", dto.getName());
         assertEquals(BankTypeEnum.CHECKING, dto.getType());
         assertEquals("user@example.com", dto.getEmail());
-        assertEquals(BigDecimal.ZERO, dto.getBalance());
+        assertEquals(BigDecimal.ZERO, dto.getPendingBalance());
+        assertEquals(BigDecimal.ZERO, dto.getPostedBalance());
     }
 }
