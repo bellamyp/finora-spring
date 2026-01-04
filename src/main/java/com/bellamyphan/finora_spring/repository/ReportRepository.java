@@ -31,4 +31,18 @@ public interface ReportRepository extends JpaRepository<Report, String> {
         GROUP BY t.type.id
     """)
     List<ReportTypeAggregate> calculateLiveTypeBalances(@Param("reportId") @NonNull String reportId);
+
+
+
+    // --------------------------
+    // Live calculation of bank balances for a report
+    // --------------------------
+    @Query("""
+    SELECT t.bank.id AS bankId, SUM(t.amount) AS totalAmount
+    FROM TransactionGroup tg
+    JOIN tg.transactions t
+    WHERE tg.report.id = :reportId
+    GROUP BY t.bank.id
+    """)
+    List<ReportBankAggregate> calculateLiveBankBalances(@Param("reportId") @NonNull String reportId);
 }

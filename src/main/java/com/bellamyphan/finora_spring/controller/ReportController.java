@@ -1,11 +1,13 @@
 package com.bellamyphan.finora_spring.controller;
 
+import com.bellamyphan.finora_spring.dto.ReportBankBalanceDto;
 import com.bellamyphan.finora_spring.dto.ReportDto;
 import com.bellamyphan.finora_spring.dto.ReportTypeBalanceDto;
 import com.bellamyphan.finora_spring.entity.Report;
 import com.bellamyphan.finora_spring.entity.ReportType;
 import com.bellamyphan.finora_spring.entity.User;
 import com.bellamyphan.finora_spring.service.JwtService;
+import com.bellamyphan.finora_spring.service.ReportBankService;
 import com.bellamyphan.finora_spring.service.ReportService;
 import com.bellamyphan.finora_spring.service.ReportTypeService;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +24,7 @@ public class ReportController {
 
     private final ReportService reportService;
     private final ReportTypeService reportTypeService;
+    private final ReportBankService reportBankService;
     private final JwtService jwtService;
 
     // -----------------------
@@ -139,6 +142,23 @@ public class ReportController {
                         rt.getTotalAmount()
                 ))
                 .toList();
+
+        return ResponseEntity.ok(dtoList);
+    }
+
+    // -----------------------
+    // GET report bank balances
+    // -----------------------
+    @GetMapping("/{reportId}/bank-balances")
+    public ResponseEntity<List<ReportBankBalanceDto>> getReportBankBalances(@PathVariable String reportId) {
+        // 1️⃣ Get current user
+        User user = jwtService.getCurrentUser();
+
+        // 2️⃣ Load report and check ownership
+        Report report = reportService.getReportEntityById(user, reportId);
+
+        // 3️⃣ Get balances from ReportBankService
+        List<ReportBankBalanceDto> dtoList = reportBankService.getBankBalances(report);
 
         return ResponseEntity.ok(dtoList);
     }
