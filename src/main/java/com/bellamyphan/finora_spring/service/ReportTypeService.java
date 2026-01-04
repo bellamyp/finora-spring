@@ -36,10 +36,8 @@ public class ReportTypeService {
 
     /**
      * Returns the list of ReportType for a given report.
-     *
      * - If report is POSTED → read snapshot from DB
      * - If report is PENDING → calculate LIVE from transactions
-     *
      * NO DB writes happen here.
      */
     @Transactional(readOnly = true)
@@ -60,7 +58,6 @@ public class ReportTypeService {
 
     /**
      * Calculate live type balances from transactions.
-     *
      * Returns one ReportType per type (multiple types per report supported)
      * These entities are not saved — only for returning to controller/DTO.
      */

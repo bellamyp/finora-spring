@@ -67,7 +67,7 @@ public class ReportBankService {
         List<ReportBankAggregate> aggregates =
                 reportRepository.calculateLiveBankBalances(report.getId());
 
-        List<ReportBank> balances = aggregates.stream()
+        return aggregates.stream()
                 .map(a -> {
                     Bank bank = bankRepository.getReferenceById(a.getBankId());
                     // Create a temporary ReportBank object (not persisted)
@@ -78,7 +78,5 @@ public class ReportBankService {
                     return rb;
                 })
                 .collect(Collectors.toList());
-
-        return balances;
     }
 }

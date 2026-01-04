@@ -217,13 +217,11 @@ public class ReportController {
                         rb.getBalance(),
                         rb.getBank().getName(),
                         rb.getBank().getGroup().getName()
-                ))
-                .collect(Collectors.toList());
+                )).sorted(Comparator
+                        .comparing(ReportBankBalanceDto::bankGroupName, String.CASE_INSENSITIVE_ORDER)
+                        .thenComparing(ReportBankBalanceDto::bankName, String.CASE_INSENSITIVE_ORDER)).collect(Collectors.toList());
 
         // Sort the list
-        dtoList.sort(Comparator
-                .comparing(ReportBankBalanceDto::bankGroupName, String.CASE_INSENSITIVE_ORDER)
-                .thenComparing(ReportBankBalanceDto::bankName, String.CASE_INSENSITIVE_ORDER));
 
         return ResponseEntity.ok(dtoList);
     }
