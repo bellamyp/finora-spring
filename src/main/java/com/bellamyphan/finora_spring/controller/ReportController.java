@@ -49,6 +49,20 @@ public class ReportController {
     }
 
     // -----------------------
+    // POST remove a report from a transaction group
+    // -----------------------
+    @PostMapping("/groups/{groupId}/remove-report")
+    public ResponseEntity<Void> removeReportFromGroup(@PathVariable String groupId) {
+        // Get the current logged-in user from JWT token
+        User user = jwtService.getCurrentUser();
+
+        // Call service to handle the removal logic
+        reportService.removeReportFromGroup(user, groupId);
+
+        return ResponseEntity.ok().build();
+    }
+
+    // -----------------------
     // GET all reports
     // -----------------------
     @GetMapping
@@ -58,6 +72,18 @@ public class ReportController {
 
         List<ReportDto> reportDtos = reportService.getAllReportsByUser(user);
         return ResponseEntity.ok(reportDtos);
+    }
+
+    // -----------------------
+    // GET report by ID
+    // -----------------------
+    @GetMapping("/{reportId}")
+    public ResponseEntity<ReportDto> getReportById(@PathVariable String reportId) {
+        // Get the current logged-in user from JWT token
+        User user = jwtService.getCurrentUser();
+
+        ReportDto report = reportService.getReportById(user, reportId);
+        return ResponseEntity.ok(report);
     }
 
     // -----------------------

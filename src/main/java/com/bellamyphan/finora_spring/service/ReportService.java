@@ -41,6 +41,26 @@ public class ReportService {
                 .toList();
     }
 
+    public ReportDto getReportById(User user, String reportId) {
+        // 1️⃣ Load the report by ID
+        Report report = reportRepository.findById(reportId)
+                .orElseThrow(() -> new RuntimeException("Report not found: " + reportId));
+
+        // 2️⃣ Ensure the report belongs to the current user
+        if (!report.getUser().getId().equals(user.getId())) {
+            throw new RuntimeException("Unauthorized access to report");
+        }
+
+        // 3️⃣ Map to DTO
+        ReportDto dto = new ReportDto();
+        dto.setId(report.getId());
+        dto.setUserId(report.getUser().getId());
+        dto.setMonth(report.getMonth());
+        dto.setPosted(report.isPosted());
+
+        return dto;
+    }
+
     /**
      * Returns true if user has at least 1 pending (not posted) report
      */
@@ -145,5 +165,32 @@ public class ReportService {
 
         // 6️⃣ Save all updated groups
         transactionGroupRepository.saveAll(groups);
+    }
+
+    @Transactional
+    public void removeReportFromGroup(User user, String groupId) {
+        // 1️⃣ Load the transaction group
+        TransactionGroup group = transactionGroupRepository.findById(groupId)
+                .orElseThrow(() -> new RuntimeException("Transaction group not found: " + groupId));
+
+        // 2️⃣ Check if the group has a report assigned
+        Report report = group.getReport();
+        if (report == null) {
+            throw new RuntimeException("Transaction group is not assigned to any report");
+        }
+
+        // 3️⃣ Check ownership
+        if (!report.getUser().getId().equals(user.getId())) {
+            throw new RuntimeException("Unauthorized: Cannot modify this report");
+        }
+
+        // 4️⃣ Check if the report is posted
+        if (report.isPosted()) {
+            throw new RuntimeException("Cannot remove report: Report has already been posted");
+        }
+
+        // 5️⃣ Remove report from the group
+        group.setReport(null);
+        transactionGroupRepository.save(group);
     }
 }

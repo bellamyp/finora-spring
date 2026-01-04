@@ -10,6 +10,8 @@ public interface ReportRepository extends JpaRepository<Report, String> {
     // Find latest report for a user
     Optional<Report> findTopByUserIdOrderByMonthDesc(String userId);
 
+    Optional<Report> findById(String id);
+
     // All reports for a user, sorted by month descending
     List<Report> findAllByUserIdOrderByMonthDesc(String userId);
 
