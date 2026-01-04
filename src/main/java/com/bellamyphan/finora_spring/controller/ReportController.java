@@ -7,9 +7,12 @@ import com.bellamyphan.finora_spring.service.ReportService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/reports")
@@ -32,5 +35,14 @@ public class ReportController {
 
         // Return report directly with CREATED status
         return new ResponseEntity<>(report, HttpStatus.CREATED);
+    }
+
+    @GetMapping
+    public ResponseEntity<List<ReportDto>> getAllReports() {
+        // Get the current logged-in user from JWT token
+        User user = jwtService.getCurrentUser();
+
+        List<ReportDto> reportDtos = reportService.getAllReportByUser(user);
+        return ResponseEntity.ok(reportDtos);
     }
 }

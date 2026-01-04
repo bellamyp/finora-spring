@@ -25,6 +25,22 @@ public class ReportService {
     private final TransactionGroupService transactionGroupService;
     private final NanoIdService nanoIdService;
 
+    public List<ReportDto> getAllReportByUser(User user) {
+
+        return reportRepository
+                .findAllByUserIdOrderByMonthDesc(user.getId())
+                .stream()
+                .map(report -> {
+                    ReportDto dto = new ReportDto();
+                    dto.setId(report.getId());
+                    dto.setUserId(user.getId());
+                    dto.setMonth(report.getMonth());
+                    dto.setPosted(report.isPosted());
+                    return dto;
+                })
+                .toList();
+    }
+
     @Transactional
     public ReportDto createNewReport(User user) {
 
