@@ -95,6 +95,23 @@ public class ReportController {
     }
 
     // -----------------------
+    // GET next pending report
+    // -----------------------
+    @GetMapping("/next-pending")
+    public ResponseEntity<ReportDto> getNextPendingReport() {
+        // Get the current logged-in user from JWT token
+        User user = jwtService.getCurrentUser();
+
+        ReportDto nextPending = reportService.getNextPendingReport(user);
+
+        if (nextPending == null) {
+            return ResponseEntity.noContent().build(); // 204 if none
+        }
+
+        return ResponseEntity.ok(nextPending);
+    }
+
+    // -----------------------
     // GET check if user has any pending report
     // -----------------------
     @GetMapping("/has-pending")

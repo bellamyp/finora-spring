@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -69,6 +70,18 @@ public class ReportService {
         dto.setPosted(report.isPosted());
 
         return dto;
+    }
+
+    public ReportDto getNextPendingReport(User user) {
+        // Get all reports for the user
+        List<ReportDto> allReports = getAllReportsByUser(user);
+
+        // Filter pending reports and sort by month/date
+        return allReports.stream()
+                .filter(r -> !r.isPosted()) // only pending
+                .sorted(Comparator.comparing(ReportDto::getMonth)) // oldest first
+                .findFirst()
+                .orElse(null); // null if none
     }
 
     /**
