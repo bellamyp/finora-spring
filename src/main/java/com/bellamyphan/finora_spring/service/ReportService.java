@@ -41,7 +41,11 @@ public class ReportService {
                 .toList();
     }
 
-    public ReportDto getReportById(User user, String reportId) {
+    /**
+     * Load report entity by ID and ensure it belongs to the given user.
+     * Throws RuntimeException if not found or unauthorized.
+     */
+    public Report getReportEntityById(User user, String reportId) {
         // 1️⃣ Load the report by ID
         Report report = reportRepository.findById(reportId)
                 .orElseThrow(() -> new RuntimeException("Report not found: " + reportId));
@@ -51,7 +55,13 @@ public class ReportService {
             throw new RuntimeException("Unauthorized access to report");
         }
 
-        // 3️⃣ Map to DTO
+        return report;
+    }
+
+    public ReportDto getReportDtoById(User user, String reportId) {
+        Report report = getReportEntityById(user, reportId);
+
+        // Map to DTO
         ReportDto dto = new ReportDto();
         dto.setId(report.getId());
         dto.setUserId(report.getUser().getId());

@@ -1,9 +1,13 @@
 package com.bellamyphan.finora_spring.controller;
 
 import com.bellamyphan.finora_spring.dto.ReportDto;
+import com.bellamyphan.finora_spring.dto.ReportTypeBalanceDto;
+import com.bellamyphan.finora_spring.entity.Report;
+import com.bellamyphan.finora_spring.entity.ReportType;
 import com.bellamyphan.finora_spring.entity.User;
 import com.bellamyphan.finora_spring.service.JwtService;
 import com.bellamyphan.finora_spring.service.ReportService;
+import com.bellamyphan.finora_spring.service.ReportTypeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +21,7 @@ import java.util.List;
 public class ReportController {
 
     private final ReportService reportService;
+    private final ReportTypeService reportTypeService;
     private final JwtService jwtService;
 
     // -----------------------
@@ -82,7 +87,7 @@ public class ReportController {
         // Get the current logged-in user from JWT token
         User user = jwtService.getCurrentUser();
 
-        ReportDto report = reportService.getReportById(user, reportId);
+        ReportDto report = reportService.getReportDtoById(user, reportId);
         return ResponseEntity.ok(report);
     }
 
@@ -111,5 +116,30 @@ public class ReportController {
 
         boolean canAdd = reportService.canAddTransactionGroups(user);
         return ResponseEntity.ok(canAdd);
+    }
+
+    // -----------------------
+    // GET report type balances
+    // -----------------------
+    @GetMapping("/{reportId}/type-balances")
+    public ResponseEntity<List<ReportTypeBalanceDto>> getReportTypeBalances(@PathVariable String reportId) {
+        // 1️⃣ Get current user
+        User user = jwtService.getCurrentUser();
+
+        // 2️⃣ Load report and check ownership
+        Report report = reportService.getReportEntityById(user, reportId);
+
+        // 3️⃣ Get balances from ReportTypeService
+        List<ReportType> balances = reportTypeService.getTypeBalances(report);
+
+        // 4️⃣ Map to DTO
+        List<ReportTypeBalanceDto> dtoList = balances.stream()
+                .map(rt -> new ReportTypeBalanceDto(
+                        rt.getType().getType().toString(),
+                        rt.getTotalAmount()
+                ))
+                .toList();
+
+        return ResponseEntity.ok(dtoList);
     }
 }
