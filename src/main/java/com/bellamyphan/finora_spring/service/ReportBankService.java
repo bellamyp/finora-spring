@@ -11,7 +11,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -23,26 +26,38 @@ public class ReportBankService {
 
     /**
      * Returns the list of bank balances for a given report.
-     * - If report is POSTED → read snapshot from DB (TODO later)
+     * - If report is POSTED → read snapshot from DB
      * - If report is PENDING → calculate LIVE from transactions
      * NO DB writes happen here.
      */
     @Transactional(readOnly = true)
     public List<ReportBankBalanceDto> getBankBalances(Report report) {
 
+        List<ReportBankBalanceDto> balances;
+
         if (report.isPosted()) {
-            // Read snapshot from report_bank table
-            return reportBankRepository.findByReportId(report.getId())
+            // Read snapshot from report_bank table (mutable list)
+            balances = reportBankRepository.findByReportId(report.getId())
                     .stream()
                     .map(rb -> {
                         Bank bank = bankRepository.getReferenceById(rb.getBank().getId());
-                        return new ReportBankBalanceDto(bank.getId(), rb.getBalance());
+                        return new ReportBankBalanceDto(
+                                bank.getId(),
+                                rb.getBalance(),
+                                bank.getName(),
+                                bank.getGroup().getName()
+                        );
                     })
-                    .toList();
+                    .collect(Collectors.toCollection(ArrayList::new));
+        } else {
+            // Live calculation for pending reports
+            balances = calculateLiveBankBalances(report);
         }
 
-        // Live calculation for pending reports
-        return calculateLiveBankBalances(report);
+        // Sort safely
+        sortBankBalances(balances);
+
+        return balances;
     }
 
     /**
@@ -52,19 +67,34 @@ public class ReportBankService {
      */
     private List<ReportBankBalanceDto> calculateLiveBankBalances(Report report) {
 
-        // TODO: implement snapshot reading for posted previous report!
-
         List<ReportBankAggregate> aggregates =
                 reportRepository.calculateLiveBankBalances(report.getId());
 
-        return aggregates.stream()
+        // Map aggregates to DTO with bank and group info (mutable list)
+        List<ReportBankBalanceDto> balances = aggregates.stream()
                 .map(a -> {
                     Bank bank = bankRepository.getReferenceById(a.getBankId());
                     return new ReportBankBalanceDto(
                             bank.getId(),
-                            a.getTotalAmount()
+                            a.getTotalAmount(),
+                            bank.getName(),
+                            bank.getGroup().getName()
                     );
                 })
-                .toList();
+                .collect(Collectors.toCollection(ArrayList::new));
+
+        // Sort safely
+        sortBankBalances(balances);
+
+        return balances;
+    }
+
+    /**
+     * Sort bank balances by group name, then by bank name.
+     */
+    private void sortBankBalances(List<ReportBankBalanceDto> balances) {
+        balances.sort(Comparator
+                .comparing(ReportBankBalanceDto::bankGroupName, String.CASE_INSENSITIVE_ORDER)
+                .thenComparing(ReportBankBalanceDto::bankName, String.CASE_INSENSITIVE_ORDER));
     }
 }

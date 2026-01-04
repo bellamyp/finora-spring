@@ -4,5 +4,7 @@ import java.math.BigDecimal;
 
 public record ReportBankBalanceDto (
         String bankId,
-        BigDecimal totalAmount
+        BigDecimal totalAmount,
+        String bankName,
+        String bankGroupName
 ) {}
