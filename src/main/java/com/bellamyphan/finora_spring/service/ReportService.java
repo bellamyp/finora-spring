@@ -25,7 +25,6 @@ public class ReportService {
     private final TransactionGroupRepository transactionGroupRepository;
     private final TransactionGroupService transactionGroupService;
     private final NanoIdService nanoIdService;
-    private String testing;
 
     public List<ReportDto> getAllReportsByUser(User user) {
 
