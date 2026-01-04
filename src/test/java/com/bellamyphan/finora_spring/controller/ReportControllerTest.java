@@ -9,6 +9,7 @@ import com.bellamyphan.finora_spring.service.JwtService;
 import com.bellamyphan.finora_spring.service.ReportBankService;
 import com.bellamyphan.finora_spring.service.ReportService;
 import com.bellamyphan.finora_spring.service.ReportTypeService;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,12 +30,6 @@ class ReportControllerTest {
 
     @Mock
     private ReportService reportService;
-
-    @Mock
-    private ReportTypeService reportTypeService;
-
-    @Mock
-    private ReportBankService reportBankService;
 
     @Mock
     private JwtService jwtService;
@@ -107,6 +102,7 @@ class ReportControllerTest {
         ResponseEntity<List<ReportDto>> response = reportController.getAllReports();
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
+        Assertions.assertNotNull(response.getBody());
         assertEquals(1, response.getBody().size());
         assertEquals(mockReport, response.getBody().get(0));
     }
