@@ -25,6 +25,59 @@ public class ReportService {
     private final TransactionGroupService transactionGroupService;
     private final NanoIdService nanoIdService;
 
+    public List<ReportDto> getAllReportsByUser(User user) {
+
+        return reportRepository
+                .findAllByUserIdOrderByMonthDesc(user.getId())
+                .stream()
+                .map(report -> {
+                    ReportDto dto = new ReportDto();
+                    dto.setId(report.getId());
+                    dto.setUserId(user.getId());
+                    dto.setMonth(report.getMonth());
+                    dto.setPosted(report.isPosted());
+                    return dto;
+                })
+                .toList();
+    }
+
+    public ReportDto getReportById(User user, String reportId) {
+        // 1️⃣ Load the report by ID
+        Report report = reportRepository.findById(reportId)
+                .orElseThrow(() -> new RuntimeException("Report not found: " + reportId));
+
+        // 2️⃣ Ensure the report belongs to the current user
+        if (!report.getUser().getId().equals(user.getId())) {
+            throw new RuntimeException("Unauthorized access to report");
+        }
+
+        // 3️⃣ Map to DTO
+        ReportDto dto = new ReportDto();
+        dto.setId(report.getId());
+        dto.setUserId(report.getUser().getId());
+        dto.setMonth(report.getMonth());
+        dto.setPosted(report.isPosted());
+
+        return dto;
+    }
+
+    /**
+     * Returns true if user has at least 1 pending (not posted) report
+     */
+    public boolean hasPendingReport(User user) {
+        return reportRepository.existsByUserIdAndIsPostedFalse(user.getId());
+    }
+
+    /**
+     * Returns true if user has at least one fully-posted transaction group
+     * that can be added to a report
+     */
+    public boolean canAddTransactionGroups(User user) {
+        return !transactionGroupService
+                .getFullyPostedGroupsForNewReport(user)
+                .isEmpty();
+    }
+
     @Transactional
     public ReportDto createNewReport(User user) {
 
@@ -79,5 +132,65 @@ public class ReportService {
         dto.setPosted(report.isPosted());
 
         return dto;
+    }
+
+    @Transactional
+    public void addTransactionGroupsToReport(User user, String reportId) {
+        // 1️⃣ Get the target report
+        Report report = reportRepository.findById(reportId)
+                .orElseThrow(() -> new RuntimeException("Report not found: " + reportId));
+
+        // 2️⃣ Make sure the report belongs to the user
+        if (!report.getUser().getId().equals(user.getId())) {
+            throw new RuntimeException("Unauthorized access to report");
+        }
+
+        // 3️⃣ Get all fully posted transaction groups for this user that are not yet assigned to a report
+        List<TransactionGroupResponseDto> fullyPostedGroups = transactionGroupService
+                .getFullyPostedGroupsForNewReport(user);
+
+        if (fullyPostedGroups.isEmpty()) {
+            return; // nothing to add
+        }
+
+        // 4️⃣ Fetch entities by IDs
+        List<String> groupIds = fullyPostedGroups.stream()
+                .map(TransactionGroupResponseDto::getId)
+                .toList();
+
+        List<TransactionGroup> groups = transactionGroupRepository.findAllById(groupIds);
+
+        // 5️⃣ Assign report to each group
+        groups.forEach(tg -> tg.setReport(report));
+
+        // 6️⃣ Save all updated groups
+        transactionGroupRepository.saveAll(groups);
+    }
+
+    @Transactional
+    public void removeReportFromGroup(User user, String groupId) {
+        // 1️⃣ Load the transaction group
+        TransactionGroup group = transactionGroupRepository.findById(groupId)
+                .orElseThrow(() -> new RuntimeException("Transaction group not found: " + groupId));
+
+        // 2️⃣ Check if the group has a report assigned
+        Report report = group.getReport();
+        if (report == null) {
+            throw new RuntimeException("Transaction group is not assigned to any report");
+        }
+
+        // 3️⃣ Check ownership
+        if (!report.getUser().getId().equals(user.getId())) {
+            throw new RuntimeException("Unauthorized: Cannot modify this report");
+        }
+
+        // 4️⃣ Check if the report is posted
+        if (report.isPosted()) {
+            throw new RuntimeException("Cannot remove report: Report has already been posted");
+        }
+
+        // 5️⃣ Remove report from the group
+        group.setReport(null);
+        transactionGroupRepository.save(group);
     }
 }

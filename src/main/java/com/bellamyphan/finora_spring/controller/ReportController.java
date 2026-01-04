@@ -7,9 +7,9 @@ import com.bellamyphan.finora_spring.service.ReportService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/reports")
@@ -32,5 +32,84 @@ public class ReportController {
 
         // Return report directly with CREATED status
         return new ResponseEntity<>(report, HttpStatus.CREATED);
+    }
+
+    // -----------------------
+    // POST add fully posted transaction groups to a report
+    // -----------------------
+    @PostMapping("/{reportId}/add-groups")
+    public ResponseEntity<Void> addTransactionGroupsToReport(@PathVariable String reportId) {
+        // Get the current logged-in user from JWT token
+        User user = jwtService.getCurrentUser();
+
+        // Call service to add all fully posted groups to this report
+        reportService.addTransactionGroupsToReport(user, reportId);
+
+        return ResponseEntity.ok().build();
+    }
+
+    // -----------------------
+    // POST remove a report from a transaction group
+    // -----------------------
+    @PostMapping("/groups/{groupId}/remove-report")
+    public ResponseEntity<Void> removeReportFromGroup(@PathVariable String groupId) {
+        // Get the current logged-in user from JWT token
+        User user = jwtService.getCurrentUser();
+
+        // Call service to handle the removal logic
+        reportService.removeReportFromGroup(user, groupId);
+
+        return ResponseEntity.ok().build();
+    }
+
+    // -----------------------
+    // GET all reports
+    // -----------------------
+    @GetMapping
+    public ResponseEntity<List<ReportDto>> getAllReports() {
+        // Get the current logged-in user from JWT token
+        User user = jwtService.getCurrentUser();
+
+        List<ReportDto> reportDtos = reportService.getAllReportsByUser(user);
+        return ResponseEntity.ok(reportDtos);
+    }
+
+    // -----------------------
+    // GET report by ID
+    // -----------------------
+    @GetMapping("/{reportId}")
+    public ResponseEntity<ReportDto> getReportById(@PathVariable String reportId) {
+        // Get the current logged-in user from JWT token
+        User user = jwtService.getCurrentUser();
+
+        ReportDto report = reportService.getReportById(user, reportId);
+        return ResponseEntity.ok(report);
+    }
+
+    // -----------------------
+    // GET check if user can generate new report
+    // -----------------------
+    @GetMapping("/can-generate")
+    public ResponseEntity<Boolean> canGenerateNewReport() {
+        // Get the current logged-in user from JWT token
+        User user = jwtService.getCurrentUser();
+
+        // Check if user has any pending (not posted) reports
+        boolean hasPending = reportService.hasPendingReport(user);
+
+        // Can generate a new report if there are no pending reports
+        return ResponseEntity.ok(!hasPending);
+    }
+
+    // -----------------------
+    // GET check if user can add transaction groups
+    // -----------------------
+    @GetMapping("/can-add-groups")
+    public ResponseEntity<Boolean> canAddTransactionGroups() {
+        // Get the current logged-in user from JWT token
+        User user = jwtService.getCurrentUser();
+
+        boolean canAdd = reportService.canAddTransactionGroups(user);
+        return ResponseEntity.ok(canAdd);
     }
 }
