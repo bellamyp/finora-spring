@@ -95,6 +95,20 @@ public class ReportController {
     }
 
     // -----------------------
+    // GET check if user has any pending report
+    // -----------------------
+    @GetMapping("/has-pending")
+    public ResponseEntity<Boolean> hasPendingReport() {
+        // Get the current logged-in user from JWT token
+        User user = jwtService.getCurrentUser();
+
+        // Check if user has any pending (not posted) reports
+        boolean hasPending = reportService.hasPendingReport(user);
+
+        return ResponseEntity.ok(hasPending);
+    }
+
+    // -----------------------
     // GET check if user can generate new report
     // -----------------------
     @GetMapping("/can-generate")
