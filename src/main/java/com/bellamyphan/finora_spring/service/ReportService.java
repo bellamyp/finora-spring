@@ -113,4 +113,37 @@ public class ReportService {
 
         return dto;
     }
+
+    @Transactional
+    public void addTransactionGroupsToReport(User user, String reportId) {
+        // 1️⃣ Get the target report
+        Report report = reportRepository.findById(reportId)
+                .orElseThrow(() -> new RuntimeException("Report not found: " + reportId));
+
+        // 2️⃣ Make sure the report belongs to the user
+        if (!report.getUser().getId().equals(user.getId())) {
+            throw new RuntimeException("Unauthorized access to report");
+        }
+
+        // 3️⃣ Get all fully posted transaction groups for this user that are not yet assigned to a report
+        List<TransactionGroupResponseDto> fullyPostedGroups = transactionGroupService
+                .getFullyPostedGroupsForNewReport(user);
+
+        if (fullyPostedGroups.isEmpty()) {
+            return; // nothing to add
+        }
+
+        // 4️⃣ Fetch entities by IDs
+        List<String> groupIds = fullyPostedGroups.stream()
+                .map(TransactionGroupResponseDto::getId)
+                .toList();
+
+        List<TransactionGroup> groups = transactionGroupRepository.findAllById(groupIds);
+
+        // 5️⃣ Assign report to each group
+        groups.forEach(tg -> tg.setReport(report));
+
+        // 6️⃣ Save all updated groups
+        transactionGroupRepository.saveAll(groups);
+    }
 }

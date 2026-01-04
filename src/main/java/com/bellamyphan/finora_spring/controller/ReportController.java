@@ -7,10 +7,7 @@ import com.bellamyphan.finora_spring.service.ReportService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -37,6 +34,19 @@ public class ReportController {
         return new ResponseEntity<>(report, HttpStatus.CREATED);
     }
 
+    // -----------------------
+    // POST add fully posted transaction groups to a report
+    // -----------------------
+    @PostMapping("/{reportId}/add-groups")
+    public ResponseEntity<Void> addTransactionGroupsToReport(@PathVariable String reportId) {
+        // Get the current logged-in user from JWT token
+        User user = jwtService.getCurrentUser();
+
+        // Call service to add all fully posted groups to this report
+        reportService.addTransactionGroupsToReport(user, reportId);
+
+        return ResponseEntity.ok().build();
+    }
 
     // -----------------------
     // GET all reports
