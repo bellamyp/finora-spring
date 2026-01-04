@@ -48,6 +48,16 @@ public class ReportService {
         return reportRepository.existsByUserIdAndIsPostedFalse(user.getId());
     }
 
+    /**
+     * Returns true if user has at least one fully-posted transaction group
+     * that can be added to a report
+     */
+    public boolean canAddTransactionGroups(User user) {
+        return !transactionGroupService
+                .getFullyPostedGroupsForNewReport(user)
+                .isEmpty();
+    }
+
     @Transactional
     public ReportDto createNewReport(User user) {
 

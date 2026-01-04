@@ -55,6 +55,7 @@ public class ReportController {
     // -----------------------
     @GetMapping("/can-generate")
     public ResponseEntity<Boolean> canGenerateNewReport() {
+        // Get the current logged-in user from JWT token
         User user = jwtService.getCurrentUser();
 
         // Check if user has any pending (not posted) reports
@@ -62,5 +63,17 @@ public class ReportController {
 
         // Can generate a new report if there are no pending reports
         return ResponseEntity.ok(!hasPending);
+    }
+
+    // -----------------------
+    // GET check if user can add transaction groups
+    // -----------------------
+    @GetMapping("/can-add-groups")
+    public ResponseEntity<Boolean> canAddTransactionGroups() {
+        // Get the current logged-in user from JWT token
+        User user = jwtService.getCurrentUser();
+
+        boolean canAdd = reportService.canAddTransactionGroups(user);
+        return ResponseEntity.ok(canAdd);
     }
 }
