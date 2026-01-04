@@ -12,4 +12,7 @@ public interface ReportRepository extends JpaRepository<Report, String> {
 
     // All reports for a user, sorted by month descending
     List<Report> findAllByUserIdOrderByMonthDesc(String userId);
+
+    // Check if user has at least 1 pending report
+    boolean existsByUserIdAndIsPostedFalse(String userId);
 }

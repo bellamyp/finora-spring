@@ -37,12 +37,30 @@ public class ReportController {
         return new ResponseEntity<>(report, HttpStatus.CREATED);
     }
 
+
+    // -----------------------
+    // GET all reports
+    // -----------------------
     @GetMapping
     public ResponseEntity<List<ReportDto>> getAllReports() {
         // Get the current logged-in user from JWT token
         User user = jwtService.getCurrentUser();
 
-        List<ReportDto> reportDtos = reportService.getAllReportByUser(user);
+        List<ReportDto> reportDtos = reportService.getAllReportsByUser(user);
         return ResponseEntity.ok(reportDtos);
+    }
+
+    // -----------------------
+    // GET check if user can generate new report
+    // -----------------------
+    @GetMapping("/can-generate")
+    public ResponseEntity<Boolean> canGenerateNewReport() {
+        User user = jwtService.getCurrentUser();
+
+        // Check if user has any pending (not posted) reports
+        boolean hasPending = reportService.hasPendingReport(user);
+
+        // Can generate a new report if there are no pending reports
+        return ResponseEntity.ok(!hasPending);
     }
 }

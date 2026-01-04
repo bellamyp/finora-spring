@@ -25,7 +25,7 @@ public class ReportService {
     private final TransactionGroupService transactionGroupService;
     private final NanoIdService nanoIdService;
 
-    public List<ReportDto> getAllReportByUser(User user) {
+    public List<ReportDto> getAllReportsByUser(User user) {
 
         return reportRepository
                 .findAllByUserIdOrderByMonthDesc(user.getId())
@@ -39,6 +39,13 @@ public class ReportService {
                     return dto;
                 })
                 .toList();
+    }
+
+    /**
+     * Returns true if user has at least 1 pending (not posted) report
+     */
+    public boolean hasPendingReport(User user) {
+        return reportRepository.existsByUserIdAndIsPostedFalse(user.getId());
     }
 
     @Transactional
