@@ -77,10 +77,10 @@ public class ReportService {
         List<ReportDto> allReports = getAllReportsByUser(user);
 
         // Filter pending reports and sort by month/date
+        // only pending
+        // oldest first
         return allReports.stream()
-                .filter(r -> !r.isPosted()) // only pending
-                .sorted(Comparator.comparing(ReportDto::getMonth)) // oldest first
-                .findFirst()
+                .filter(r -> !r.isPosted()).min(Comparator.comparing(ReportDto::getMonth))
                 .orElse(null); // null if none
     }
 
