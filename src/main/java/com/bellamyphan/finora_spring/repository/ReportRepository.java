@@ -1,6 +1,7 @@
 package com.bellamyphan.finora_spring.repository;
 
 import com.bellamyphan.finora_spring.entity.Report;
+import jakarta.validation.constraints.NotNull;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -12,7 +13,7 @@ public interface ReportRepository extends JpaRepository<Report, String> {
     // Find latest report for a user
     Optional<Report> findTopByUserIdOrderByMonthDesc(String userId);
 
-    Optional<Report> findById(String id);
+    Optional<Report> findById(@NotNull String id);
 
     // All reports for a user, sorted by month descending
     List<Report> findAllByUserIdOrderByMonthDesc(String userId);
