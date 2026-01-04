@@ -20,6 +20,20 @@ public class ReportTypeService {
     private final ReportTypeRepository reportTypeRepository;
     private final TransactionTypeRepository transactionTypeRepository;
 
+    @Transactional
+    public void saveTypeBalances(Report report) {
+
+        if (report.isPosted()) {
+            throw new IllegalStateException("Cannot save type balances for a posted report");
+        }
+
+        // 1️⃣ Calculate live balances
+        List<ReportType> reportTypes = calculateLiveTypeBalances(report);
+
+        // 2️⃣ Persist snapshot
+        reportTypeRepository.saveAll(reportTypes);
+    }
+
     /**
      * Returns the list of ReportType for a given report.
      *

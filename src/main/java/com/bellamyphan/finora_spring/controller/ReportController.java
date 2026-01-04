@@ -4,6 +4,7 @@ import com.bellamyphan.finora_spring.dto.ReportBankBalanceDto;
 import com.bellamyphan.finora_spring.dto.ReportDto;
 import com.bellamyphan.finora_spring.dto.ReportTypeBalanceDto;
 import com.bellamyphan.finora_spring.entity.Report;
+import com.bellamyphan.finora_spring.entity.ReportBank;
 import com.bellamyphan.finora_spring.entity.ReportType;
 import com.bellamyphan.finora_spring.entity.User;
 import com.bellamyphan.finora_spring.service.JwtService;
@@ -15,7 +16,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/reports")
@@ -68,6 +71,22 @@ public class ReportController {
         reportService.removeReportFromGroup(user, groupId);
 
         return ResponseEntity.ok().build();
+    }
+
+    // -----------------------
+    // POST report as posted
+    // -----------------------
+    @PostMapping("/{reportId}/post")
+    public ResponseEntity<ReportDto> postReport(@PathVariable String reportId) {
+        // Get the current logged-in user from JWT token
+        User user = jwtService.getCurrentUser();
+
+        try {
+            ReportDto postedReport = reportService.postReport(user, reportId);
+            return ResponseEntity.ok(postedReport);
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+        }
     }
 
     // -----------------------
@@ -189,7 +208,22 @@ public class ReportController {
         Report report = reportService.getReportEntityById(user, reportId);
 
         // 3️⃣ Get balances from ReportBankService
-        List<ReportBankBalanceDto> dtoList = reportBankService.getBankBalances(report);
+        List<ReportBank> bankBalances = reportBankService.getBankBalances(report);
+
+        // Map to DTO
+        List<ReportBankBalanceDto> dtoList = bankBalances.stream()
+                .map(rb -> new ReportBankBalanceDto(
+                        rb.getBank().getId(),
+                        rb.getBalance(),
+                        rb.getBank().getName(),
+                        rb.getBank().getGroup().getName()
+                ))
+                .collect(Collectors.toList());
+
+        // Sort the list
+        dtoList.sort(Comparator
+                .comparing(ReportBankBalanceDto::bankGroupName, String.CASE_INSENSITIVE_ORDER)
+                .thenComparing(ReportBankBalanceDto::bankName, String.CASE_INSENSITIVE_ORDER));
 
         return ResponseEntity.ok(dtoList);
     }
