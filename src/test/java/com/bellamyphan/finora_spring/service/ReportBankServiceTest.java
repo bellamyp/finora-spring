@@ -1,141 +1,118 @@
 package com.bellamyphan.finora_spring.service;
 
-import com.bellamyphan.finora_spring.dto.ReportBankBalanceDto;
 import com.bellamyphan.finora_spring.entity.Bank;
-import com.bellamyphan.finora_spring.entity.BankGroup;
 import com.bellamyphan.finora_spring.entity.Report;
+import com.bellamyphan.finora_spring.entity.ReportBank;
 import com.bellamyphan.finora_spring.repository.BankRepository;
 import com.bellamyphan.finora_spring.repository.ReportBankAggregate;
 import com.bellamyphan.finora_spring.repository.ReportBankRepository;
 import com.bellamyphan.finora_spring.repository.ReportRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.*;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.ArgumentCaptor;
 
 import java.math.BigDecimal;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-@ExtendWith(MockitoExtension.class)
 class ReportBankServiceTest {
 
-    @Mock
     private ReportRepository reportRepository;
-
-    @Mock
     private ReportBankRepository reportBankRepository;
-
-    @Mock
     private BankRepository bankRepository;
-
-    @InjectMocks
     private ReportBankService reportBankService;
-
-    private Report postedReport;
-    private Report pendingReport;
-    private Bank bank1;
-    private Bank bank2;
-    private BankGroup group1;
-    private BankGroup group2;
 
     @BeforeEach
     void setUp() {
-        group1 = new BankGroup();
-        group1.setId("group1");
-        group1.setName("Group A");
+        reportRepository = mock(ReportRepository.class);
+        reportBankRepository = mock(ReportBankRepository.class);
+        bankRepository = mock(BankRepository.class);
+        reportBankService = new ReportBankService(reportRepository, reportBankRepository, bankRepository);
+    }
 
-        group2 = new BankGroup();
-        group2.setId("group2");
-        group2.setName("Group B");
-
-        bank1 = new Bank();
-        bank1.setId("bank1");
-        bank1.setName("Bank One");
-        bank1.setGroup(group1);
-
-        bank2 = new Bank();
-        bank2.setId("bank2");
-        bank2.setName("Bank Two");
-        bank2.setGroup(group2);
-
-        postedReport = new Report();
-        postedReport.setId("report1");
+    @Test
+    void saveBankBalances_shouldThrowIfReportPosted() {
+        Report postedReport = new Report();
         postedReport.setPosted(true);
 
-        pendingReport = new Report();
-        pendingReport.setId("report2");
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+                () -> reportBankService.saveBankBalances(postedReport));
+
+        assertEquals("Cannot save bank balances for a posted report", ex.getMessage());
+        verifyNoInteractions(reportRepository, reportBankRepository, bankRepository);
+    }
+
+    @Test
+    void saveBankBalances_shouldCalculateAndPersistBalances() {
+        Report pendingReport = new Report();
+        pendingReport.setId("r1");
         pendingReport.setPosted(false);
+
+        // Mock projection interface
+        ReportBankAggregate agg1 = mock(ReportBankAggregate.class);
+        when(agg1.getBankId()).thenReturn("b1");
+        when(agg1.getTotalAmount()).thenReturn(BigDecimal.valueOf(100));
+
+        when(reportRepository.calculateLiveBankBalances("r1")).thenReturn(List.of(agg1));
+
+        Bank bank = new Bank();
+        bank.setId("b1");
+        when(bankRepository.getReferenceById("b1")).thenReturn(bank);
+
+        reportBankService.saveBankBalances(pendingReport);
+
+        ArgumentCaptor<List<ReportBank>> captor = ArgumentCaptor.forClass(List.class);
+        verify(reportBankRepository).saveAll(captor.capture());
+
+        List<ReportBank> saved = captor.getValue();
+        assertEquals(1, saved.size());
+        assertEquals(pendingReport, saved.get(0).getReport());
+        assertEquals(bank, saved.get(0).getBank());
+        assertEquals(BigDecimal.valueOf(100), saved.get(0).getBalance());
     }
 
     @Test
-    void getBankBalances_ShouldReturnPostedReportBalances() {
-        // Mock DB snapshot for posted report
-        var rb1 = new com.bellamyphan.finora_spring.entity.ReportBank();
-        rb1.setBank(bank1);
-        rb1.setBalance(BigDecimal.valueOf(100));
+    void getBankBalances_shouldReturnSnapshotIfPosted() {
+        Report postedReport = new Report();
+        postedReport.setId("r2");
+        postedReport.setPosted(true);
 
-        var rb2 = new com.bellamyphan.finora_spring.entity.ReportBank();
-        rb2.setBank(bank2);
-        rb2.setBalance(BigDecimal.valueOf(200));
+        ReportBank snapshot = new ReportBank();
+        snapshot.setBalance(BigDecimal.valueOf(500));
 
-        when(reportBankRepository.findByReportId("report1")).thenReturn(List.of(rb2, rb1)); // unordered
-        when(bankRepository.getReferenceById("bank1")).thenReturn(bank1);
-        when(bankRepository.getReferenceById("bank2")).thenReturn(bank2);
+        when(reportBankRepository.findByReportId("r2")).thenReturn(List.of(snapshot));
 
-        List<ReportBankBalanceDto> result = reportBankService.getBankBalances(postedReport);
-
-        // Should sort by group name then bank name
-        assertEquals(2, result.size());
-        assertEquals("Group A", result.get(0).bankGroupName());
-        assertEquals("Bank One", result.get(0).bankName());
-        assertEquals(BigDecimal.valueOf(100), result.get(0).totalAmount());
-
-        assertEquals("Group B", result.get(1).bankGroupName());
-        assertEquals("Bank Two", result.get(1).bankName());
-        assertEquals(BigDecimal.valueOf(200), result.get(1).totalAmount());
-
-        verify(reportBankRepository, times(1)).findByReportId("report1");
-        verify(bankRepository, times(2)).getReferenceById(anyString());
+        List<ReportBank> result = reportBankService.getBankBalances(postedReport);
+        assertEquals(1, result.size());
+        assertEquals(snapshot, result.get(0));
+        verify(reportBankRepository).findByReportId("r2");
+        verifyNoInteractions(reportRepository, bankRepository);
     }
 
     @Test
-    void getBankBalances_ShouldReturnPendingReportBalances_WithProjectionInterface() {
-        // Mock live calculation aggregates using interface implementation
-        ReportBankAggregate agg1 = new ReportBankAggregate() {
-            @Override
-            public String getBankId() { return "bank1"; }
-            @Override
-            public BigDecimal getTotalAmount() { return BigDecimal.valueOf(300); }
-        };
+    void getBankBalances_shouldCalculateLiveIfPending() {
+        Report pendingReport = new Report();
+        pendingReport.setId("r3");
+        pendingReport.setPosted(false);
 
-        ReportBankAggregate agg2 = new ReportBankAggregate() {
-            @Override
-            public String getBankId() { return "bank2"; }
-            @Override
-            public BigDecimal getTotalAmount() { return BigDecimal.valueOf(150); }
-        };
+        // Mock projection interface
+        ReportBankAggregate agg = mock(ReportBankAggregate.class);
+        when(agg.getBankId()).thenReturn("b2");
+        when(agg.getTotalAmount()).thenReturn(BigDecimal.valueOf(200));
 
-        when(reportRepository.calculateLiveBankBalances("report2")).thenReturn(List.of(agg2, agg1));
-        when(bankRepository.getReferenceById("bank1")).thenReturn(bank1);
-        when(bankRepository.getReferenceById("bank2")).thenReturn(bank2);
+        when(reportRepository.calculateLiveBankBalances("r3")).thenReturn(List.of(agg));
 
-        List<ReportBankBalanceDto> result = reportBankService.getBankBalances(pendingReport);
+        Bank bank = new Bank();
+        bank.setId("b2");
+        when(bankRepository.getReferenceById("b2")).thenReturn(bank);
 
-        // Sorted by group then bank name
-        assertEquals(2, result.size());
-        assertEquals("Group A", result.get(0).bankGroupName());
-        assertEquals("Bank One", result.get(0).bankName());
-        assertEquals(BigDecimal.valueOf(300), result.get(0).totalAmount());
+        List<ReportBank> result = reportBankService.getBankBalances(pendingReport);
 
-        assertEquals("Group B", result.get(1).bankGroupName());
-        assertEquals("Bank Two", result.get(1).bankName());
-        assertEquals(BigDecimal.valueOf(150), result.get(1).totalAmount());
-
-        verify(reportRepository, times(1)).calculateLiveBankBalances("report2");
-        verify(bankRepository, times(2)).getReferenceById(anyString());
+        assertEquals(1, result.size());
+        assertEquals(pendingReport, result.get(0).getReport());
+        assertEquals(bank, result.get(0).getBank());
+        assertEquals(BigDecimal.valueOf(200), result.get(0).getBalance());
     }
 }
