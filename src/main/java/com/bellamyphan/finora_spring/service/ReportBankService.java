@@ -11,7 +11,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -64,17 +67,57 @@ public class ReportBankService {
      */
     private List<ReportBank> calculateLiveBankBalances(Report report) {
 
-        List<ReportBankAggregate> aggregates =
+        LocalDate startOfMonth = report.getMonth();
+        LocalDate endOfMonth = report.getMonth().withDayOfMonth(report.getMonth().lengthOfMonth());
+
+        // 1️⃣ Get all banks active in this month
+        List<Bank> activeBanks = bankRepository.findActiveBanksInMonth(
+                report.getUser().getId(),
+                startOfMonth,
+                endOfMonth
+        );
+
+
+        // 2️⃣ Get previous report (if any)
+        Optional<Report> previousReportOpt =
+                reportRepository.findFirstByUserIdAndMonthBeforeOrderByMonthDesc(report.getUser().getId(), report.getMonth());
+
+        // Determine previous balances
+        List<ReportBank> previousBalances;
+        if (previousReportOpt.isEmpty()) {
+            // First-ever report → previous balances = 0
+            previousBalances = List.of();
+        } else {
+            Report previousReport = previousReportOpt.get();
+            if (!previousReport.isPosted()) {
+                throw new IllegalStateException(
+                        "Cannot calculate bank balances because the previous report is not posted: "
+                                + previousReport.getId());
+            }
+            // Previous report is posted → read snapshot
+            previousBalances = reportBankRepository.findByReportId(previousReport.getId());
+        }
+
+        // 3️⃣ Get current live aggregates (transactions)
+        List<ReportBankAggregate> currentAggregates =
                 reportRepository.calculateLiveBankBalances(report.getId());
 
-        return aggregates.stream()
-                .map(a -> {
-                    Bank bank = bankRepository.getReferenceById(a.getBankId());
-                    // Create a temporary ReportBank object (not persisted)
+        // 4️⃣ Build a map for cumulative balances
+        var previousMap = previousBalances.stream()
+                .collect(Collectors.toMap(rb -> rb.getBank().getId(), ReportBank::getBalance));
+
+        var currentMap = currentAggregates.stream()
+                .collect(Collectors.toMap(ReportBankAggregate::getBankId, ReportBankAggregate::getTotalAmount));
+
+        // 5️⃣ Merge everything, ensuring all active banks included
+        return activeBanks.stream()
+                .map(bank -> {
+                    BigDecimal prev = previousMap.getOrDefault(bank.getId(), BigDecimal.ZERO);
+                    BigDecimal curr = currentMap.getOrDefault(bank.getId(), BigDecimal.ZERO);
                     ReportBank rb = new ReportBank();
                     rb.setReport(report);
                     rb.setBank(bank);
-                    rb.setBalance(a.getTotalAmount());
+                    rb.setBalance(prev.add(curr));
                     return rb;
                 })
                 .collect(Collectors.toList());
