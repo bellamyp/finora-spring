@@ -112,6 +112,7 @@ class BankControllerTest {
         ResponseEntity<BankEditDto> response = controller.getBankForEdit("bank123");
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
         assertEquals("bank123", response.getBody().getId());
         assertEquals("Edit Bank", response.getBody().getName());
         assertEquals(BankTypeEnum.CHECKING, response.getBody().getType());
