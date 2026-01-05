@@ -1,8 +1,8 @@
 package com.bellamyphan.finora_spring.service;
 
-import com.bellamyphan.finora_spring.dto.BankCreateDto;
 import com.bellamyphan.finora_spring.dto.BankDailyBalanceDto;
 import com.bellamyphan.finora_spring.dto.BankDto;
+import com.bellamyphan.finora_spring.dto.BankEditDto;
 import com.bellamyphan.finora_spring.entity.*;
 import com.bellamyphan.finora_spring.repository.BankGroupRepository;
 import com.bellamyphan.finora_spring.repository.BankRepository;
@@ -31,22 +31,51 @@ public class BankService {
      * Save a new bank with unique 10-char ID
      */
     @Transactional
-    public BankDto createBank(BankCreateDto createDto, User user) {
+    public BankDto createBank(BankEditDto bankEditDto, User user) {
+
         String bankId = nanoIdService.generateUniqueId(bankRepository);
-        BankGroup group = bankGroupRepository.findById(createDto.getGroupId())
-                .orElseThrow(() -> new RuntimeException("Bank group id is not found: " + createDto.getGroupId()));
-        BankType type = bankTypeRepository.findByType(createDto.getType())
-                .orElseThrow(() -> new RuntimeException("Bank type is not found: " + createDto.getType().name()));
-        Bank newBank = new Bank(bankId, createDto.getName(), createDto.getOpeningDate(),
-                createDto.getClosingDate(), group, type, user);
-        newBank = bankRepository.save(newBank);
-        // Return the created bank dto
-        BankDto response = new BankDto();
-        response.setId(newBank.getId());
-        response.setName(newBank.getName());
-        response.setType(newBank.getType().getType());
-        response.setEmail(newBank.getUser().getEmail());
-        return response;
+
+        BankGroup group = bankGroupRepository.findById(bankEditDto.getGroupId())
+                .orElseThrow(() -> new RuntimeException("Bank group not found: " + bankEditDto.getGroupId()));
+
+        BankType type = bankTypeRepository.findByType(bankEditDto.getType())
+                .orElseThrow(() -> new RuntimeException("Bank type not found: " + bankEditDto.getType().name()));
+
+        Bank bank = new Bank(
+                bankId,
+                bankEditDto.getName(),
+                bankEditDto.getOpeningDate(),
+                bankEditDto.getClosingDate(),
+                group,
+                type,
+                user
+        );
+
+        bankRepository.save(bank);
+        return toSummaryDto(bank);
+    }
+
+    @Transactional
+    public BankDto updateBank(BankEditDto dto, User user) {
+
+        // Get bank and verify ownership
+        Bank bank = getBankOrThrow(dto.getId(), user);
+
+        BankGroup group = bankGroupRepository.findById(dto.getGroupId())
+                .orElseThrow(() -> new RuntimeException("Bank group not found: " + dto.getGroupId()));
+
+        BankType type = bankTypeRepository.findByType(dto.getType())
+                .orElseThrow(() -> new RuntimeException("Bank type not found: " + dto.getType().name()));
+
+        bank.setName(dto.getName());
+        bank.setGroup(group);
+        bank.setType(type);
+
+        // 🔒 Optional rule: opening date immutable
+        // bank.setOpeningDate(dto.getOpeningDate());
+        bank.setClosingDate(dto.getClosingDate());
+
+        return toSummaryDto(bank);
     }
 
     /**
@@ -77,6 +106,67 @@ public class BankService {
     }
 
     /**
+     * Find active banks for a user (closingDate == null)
+     */
+    public List<BankDto> findActiveBanksByUser(User user) {
+        if (user == null) {
+            throw new IllegalArgumentException("User cannot be null");
+        }
+
+        List<Bank> banks = bankRepository.findByUser(user).stream()
+                .filter(bank -> bank.getClosingDate() == null) // only active banks
+                .sorted(Comparator.comparing(b -> b.getGroup().getName(), String.CASE_INSENSITIVE_ORDER))
+                .toList();
+
+        return banks.stream()
+                .map(bank -> {
+                    BigDecimal pendingBalance = calculatePendingBalance(bank.getId());
+                    BigDecimal postedBalance = calculatePostedBalance(bank.getId());
+                    return new BankDto(
+                            bank.getId(),
+                            bank.getGroup().getId(),
+                            bank.getName(),
+                            bank.getType().getType(),
+                            bank.getUser().getEmail(),
+                            pendingBalance,
+                            postedBalance
+                    );
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Find inactive banks for a user (closingDate != null)
+     */
+    public List<BankDto> findInactiveBanksByUser(User user) {
+        if (user == null) {
+            throw new IllegalArgumentException("User cannot be null");
+        }
+
+        List<Bank> banks = bankRepository.findByUser(user).stream()
+                .filter(bank -> bank.getClosingDate() != null) // only inactive banks
+                .sorted(Comparator.comparing(b -> b.getGroup().getName(), String.CASE_INSENSITIVE_ORDER))
+                .toList();
+
+        return banks.stream()
+                .map(bank -> {
+                    BigDecimal pendingBalance = calculatePendingBalance(bank.getId());
+                    BigDecimal postedBalance = calculatePostedBalance(bank.getId());
+                    return new BankDto(
+                            bank.getId(),
+                            bank.getGroup().getId(),
+                            bank.getName(),
+                            bank.getType().getType(),
+                            bank.getUser().getEmail(),
+                            pendingBalance,
+                            postedBalance
+                    );
+                })
+                .collect(Collectors.toList());
+    }
+
+
+    /**
      * Find a bank using bankId
      */
     public Bank findBankById(String bankId) {
@@ -84,21 +174,58 @@ public class BankService {
                 .orElseThrow(() -> new RuntimeException("Bank not found: " + bankId));
     }
 
+    public BankDto getBankSummary(String bankId, User user) {
+
+        Bank bank = getBankOrThrow(bankId, user);
+
+        BigDecimal pending = calculatePendingBalance(bankId);
+        BigDecimal posted = calculatePostedBalance(bankId);
+
+        BankDto dto = toSummaryDto(bank);
+        dto.setPendingBalance(pending);
+        dto.setPostedBalance(posted);
+
+        return dto;
+    }
+
+    @Transactional(readOnly = true)
+    public BankEditDto getBankForEdit(String bankId, User user) {
+
+        Bank bank = getBankOrThrow(bankId, user);
+
+        BankEditDto dto = new BankEditDto();
+        dto.setId(bank.getId());
+        dto.setName(bank.getName());
+        dto.setGroupId(bank.getGroup().getId());
+        dto.setOpeningDate(bank.getOpeningDate());
+        dto.setClosingDate(bank.getClosingDate());
+        dto.setType(bank.getType().getType());
+
+        return dto;
+    }
+
     // Calculate pending bank balance
     public BigDecimal calculatePendingBalance(String bankId) {
-        return transactionRepository.calculatePendingBankBalance(bankId);
+        return Optional.ofNullable(
+                transactionRepository.calculatePendingBankBalance(bankId)
+        ).orElse(BigDecimal.ZERO);
     }
 
     // Calculate posted bank balance
     public BigDecimal calculatePostedBalance(String bankId) {
-        return transactionRepository.calculatePostedBankBalance(bankId);
+        return Optional.ofNullable(
+                transactionRepository.calculatePostedBankBalance(bankId)
+        ).orElse(BigDecimal.ZERO);
     }
 
-    public List<BankDailyBalanceDto> calculateLastNDaysBalance(String bankId, int days) {
+    public List<BankDailyBalanceDto> calculateLastNDaysBalance(String bankId, User user, int days) {
 
+        // Days must be valid, natural number, non zero
         if (days <= 0) {
             throw new IllegalArgumentException("Days must be positive");
         }
+        // Check bank ownership
+        getBankOrThrow(bankId, user);
 
         LocalDate today = LocalDate.now();
         LocalDate startDate = today.minusDays(days - 1);
@@ -133,5 +260,26 @@ public class BankService {
         Collections.reverse(dailyBalances);
 
         return dailyBalances;
+    }
+
+    private Bank getBankOrThrow(String bankId, User user) {
+        Bank bank = bankRepository.findById(bankId)
+                .orElseThrow(() -> new RuntimeException("Bank not found: " + bankId));
+
+        if (!bank.getUser().getId().equals(user.getId())) {
+            throw new RuntimeException("Access denied to bank: " + bankId);
+        }
+
+        return bank;
+    }
+
+    private BankDto toSummaryDto(Bank bank) {
+        BankDto dto = new BankDto();
+        dto.setId(bank.getId());
+        dto.setGroupId(bank.getGroup().getId());
+        dto.setName(bank.getName());
+        dto.setType(bank.getType().getType());
+        dto.setEmail(bank.getUser().getEmail());
+        return dto;
     }
 }
