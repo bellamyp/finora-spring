@@ -124,7 +124,7 @@ class BankControllerTest {
     }
 
     @Test
-    void createNewBank_success() {
+    void createBank_success() {
         BankCreateDto createDto = new BankCreateDto();
         createDto.setName("New Bank");
         createDto.setType(BankTypeEnum.CHECKING);
@@ -141,7 +141,7 @@ class BankControllerTest {
 
         when(bankService.createBank(createDto, mockUser)).thenReturn(savedBankDto);
 
-        ResponseEntity<BankDto> response = controller.createNewBank(createDto);
+        ResponseEntity<BankDto> response = controller.createBank(createDto);
 
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
 
