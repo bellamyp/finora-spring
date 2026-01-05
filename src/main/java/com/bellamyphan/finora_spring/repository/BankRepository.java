@@ -21,7 +21,7 @@ public interface BankRepository extends JpaRepository<Bank, String> {
     WHERE b.user.id = :userId
       AND b.openingDate <= :endOfMonth
       AND (b.closingDate IS NULL OR b.closingDate >= :startOfMonth)
-      """)
+    """)
     List<Bank> findActiveBanksInMonth(
             @Param("userId") String userId,
             @Param("startOfMonth") LocalDate startOfMonth,
