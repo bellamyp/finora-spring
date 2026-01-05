@@ -18,16 +18,8 @@ public interface ReportRepository extends JpaRepository<Report, String> {
     // All reports for a user, sorted by month descending
     List<Report> findAllByUserIdOrderByMonthDesc(@NonNull String userId);
 
-    @Query("""
-    SELECT r
-    FROM Report r
-    WHERE r.user.id = :userId
-      AND r.month < :currentMonth
-    ORDER BY r.month DESC
-    """)
-    Optional<Report> findPreviousReport(
-            @Param("userId") String userId,
-            @Param("currentMonth") LocalDate currentMonth
+    Optional<Report> findFirstByUserIdAndMonthBeforeOrderByMonthDesc(
+            String userId, LocalDate month
     );
 
     // Check if user has at least 1 pending report

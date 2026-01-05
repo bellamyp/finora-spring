@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -66,11 +67,22 @@ public class ReportBankService {
      */
     private List<ReportBank> calculateLiveBankBalances(Report report) {
 
-        // 1️⃣ Find previous report
-        Optional<Report> previousReportOpt =
-                reportRepository.findPreviousReport(report.getUser().getId(), report.getMonth());
+        LocalDate startOfMonth = report.getMonth();
+        LocalDate endOfMonth = report.getMonth().withDayOfMonth(report.getMonth().lengthOfMonth());
 
-        // 2️⃣ Determine previous balances
+        // 1️⃣ Get all banks active in this month
+        List<Bank> activeBanks = bankRepository.findActiveBanksInMonth(
+                report.getUser().getId(),
+                startOfMonth,
+                endOfMonth
+        );
+
+
+        // 2️⃣ Get previous report (if any)
+        Optional<Report> previousReportOpt =
+                reportRepository.findFirstByUserIdAndMonthBeforeOrderByMonthDesc(report.getUser().getId(), report.getMonth());
+
+        // Determine previous balances
         List<ReportBank> previousBalances;
         if (previousReportOpt.isEmpty()) {
             // First-ever report → previous balances = 0
@@ -86,25 +98,26 @@ public class ReportBankService {
             previousBalances = reportBankRepository.findByReportId(previousReport.getId());
         }
 
-        // 3️⃣ Calculate current live balances
+        // 3️⃣ Get current live aggregates (transactions)
         List<ReportBankAggregate> currentAggregates =
                 reportRepository.calculateLiveBankBalances(report.getId());
 
-        // 4️⃣ Merge previous balances + current aggregates
-        return currentAggregates.stream()
-                .map(a -> {
-                    Bank bank = bankRepository.getReferenceById(a.getBankId());
+        // 4️⃣ Build a map for cumulative balances
+        var previousMap = previousBalances.stream()
+                .collect(Collectors.toMap(rb -> rb.getBank().getId(), ReportBank::getBalance));
 
-                    ReportBank previous = previousBalances.stream()
-                            .filter(rb -> rb.getBank().getId().equals(bank.getId()))
-                            .findFirst()
-                            .orElse(null);
+        var currentMap = currentAggregates.stream()
+                .collect(Collectors.toMap(ReportBankAggregate::getBankId, ReportBankAggregate::getTotalAmount));
 
+        // 5️⃣ Merge everything, ensuring all active banks included
+        return activeBanks.stream()
+                .map(bank -> {
+                    BigDecimal prev = previousMap.getOrDefault(bank.getId(), BigDecimal.ZERO);
+                    BigDecimal curr = currentMap.getOrDefault(bank.getId(), BigDecimal.ZERO);
                     ReportBank rb = new ReportBank();
                     rb.setReport(report);
                     rb.setBank(bank);
-                    rb.setBalance(a.getTotalAmount()
-                            .add(previous != null ? previous.getBalance() : BigDecimal.ZERO));
+                    rb.setBalance(prev.add(curr));
                     return rb;
                 })
                 .collect(Collectors.toList());
