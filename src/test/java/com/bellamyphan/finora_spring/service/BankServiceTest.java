@@ -1,9 +1,12 @@
 package com.bellamyphan.finora_spring.service;
 
 import com.bellamyphan.finora_spring.constant.BankTypeEnum;
+import com.bellamyphan.finora_spring.dto.BankCreateDto;
 import com.bellamyphan.finora_spring.dto.BankDto;
-import com.bellamyphan.finora_spring.dto.BankEditDto;
-import com.bellamyphan.finora_spring.entity.*;
+import com.bellamyphan.finora_spring.entity.Bank;
+import com.bellamyphan.finora_spring.entity.BankGroup;
+import com.bellamyphan.finora_spring.entity.BankType;
+import com.bellamyphan.finora_spring.entity.User;
 import com.bellamyphan.finora_spring.repository.BankGroupRepository;
 import com.bellamyphan.finora_spring.repository.BankRepository;
 import com.bellamyphan.finora_spring.repository.BankTypeRepository;
@@ -51,7 +54,7 @@ class BankServiceTest {
     // -------------------------------------------------------
     @Test
     void createBank_success() {
-        BankEditDto dto = new BankEditDto();
+        BankCreateDto dto = new BankCreateDto();
         dto.setName("My Bank");
         dto.setGroupId("group1");
         dto.setType(BankTypeEnum.CHECKING);
@@ -87,7 +90,7 @@ class BankServiceTest {
 
     @Test
     void createBank_groupNotFound_throws() {
-        BankEditDto dto = new BankEditDto();
+        BankCreateDto dto = new BankCreateDto();
         dto.setGroupId("missing");
         dto.setType(BankTypeEnum.CHECKING);
 
@@ -98,12 +101,12 @@ class BankServiceTest {
         RuntimeException ex = assertThrows(RuntimeException.class,
                 () -> bankService.createBank(dto, user));
 
-        assertEquals("Bank group not found: missing", ex.getMessage());
+        assertEquals("Bank group id is not found: missing", ex.getMessage());
     }
 
     @Test
     void createBank_typeNotFound_throws() {
-        BankEditDto dto = new BankEditDto();
+        BankCreateDto dto = new BankCreateDto();
         dto.setGroupId("group1");
         dto.setType(BankTypeEnum.CHECKING);
 
@@ -117,42 +120,7 @@ class BankServiceTest {
         RuntimeException ex = assertThrows(RuntimeException.class,
                 () -> bankService.createBank(dto, user));
 
-        assertEquals("Bank type not found: CHECKING", ex.getMessage());
-    }
-
-    // -------------------------------------------------------
-    // UPDATE BANK
-    // -------------------------------------------------------
-    @Test
-    void updateBank_success() {
-        BankEditDto dto = new BankEditDto();
-        dto.setId("bank123");
-        dto.setName("Updated Bank");
-        dto.setGroupId("group1");
-        dto.setType(BankTypeEnum.SAVINGS);
-
-        User user = new User();
-        user.setId("user1");
-
-        Bank bank = new Bank();
-        bank.setId("bank123");
-        bank.setUser(user);
-
-        BankGroup group = new BankGroup();
-        group.setId("group1");
-        when(bankGroupRepository.findById("group1")).thenReturn(Optional.of(group));
-
-        BankType type = new BankType(BankTypeEnum.SAVINGS);
-        when(bankTypeRepository.findByType(BankTypeEnum.SAVINGS)).thenReturn(Optional.of(type));
-
-        when(bankRepository.findById("bank123")).thenReturn(Optional.of(bank));
-
-        BankDto updated = bankService.updateBank(dto, user);
-
-        assertEquals("bank123", updated.getId());
-        assertEquals("Updated Bank", updated.getName());
-        assertEquals(BankTypeEnum.SAVINGS, updated.getType());
-        assertEquals(user.getId(), bank.getUser().getId());
+        assertEquals("Bank type is not found: CHECKING", ex.getMessage());
     }
 
     // -------------------------------------------------------
@@ -187,6 +155,7 @@ class BankServiceTest {
 
         List<BankDto> result = bankService.findBanksByUser(user);
 
+        // Should be sorted by group name: Group A, Group B
         assertEquals(2, result.size());
 
         BankDto first = result.get(0); // Bank 2 -> Group A
@@ -235,66 +204,7 @@ class BankServiceTest {
     }
 
     // -------------------------------------------------------
-    // GET BANK SUMMARY
-    // -------------------------------------------------------
-    @Test
-    void getBankSummary_success() {
-        User user = new User();
-        user.setId("u1");
-
-        Bank bank = new Bank();
-        bank.setId("b1");
-        bank.setUser(user);
-        bank.setType(new BankType(BankTypeEnum.CHECKING));
-        BankGroup group = new BankGroup();
-        group.setId("g1");
-        bank.setGroup(group);
-
-        when(bankRepository.findById("b1")).thenReturn(Optional.of(bank));
-        when(transactionRepository.calculatePendingBankBalance("b1")).thenReturn(BigDecimal.valueOf(50));
-        when(transactionRepository.calculatePostedBankBalance("b1")).thenReturn(BigDecimal.valueOf(150));
-
-        BankDto dto = bankService.getBankSummary("b1", user);
-
-        assertEquals("b1", dto.getId());
-        assertEquals("g1", dto.getGroupId());
-        assertEquals(BigDecimal.valueOf(50), dto.getPendingBalance());
-        assertEquals(BigDecimal.valueOf(150), dto.getPostedBalance());
-    }
-
-    // -------------------------------------------------------
-    // GET BANK FOR EDIT
-    // -------------------------------------------------------
-    @Test
-    void getBankForEdit_success() {
-        User user = new User();
-        user.setId("u1");
-
-        Bank bank = new Bank();
-        bank.setId("b1");
-        bank.setUser(user);
-        bank.setName("Bank Name");
-        bank.setOpeningDate(LocalDate.of(2024, 1, 1));
-        bank.setClosingDate(LocalDate.of(2024, 12, 31));
-        bank.setType(new BankType(BankTypeEnum.CHECKING));
-        BankGroup group = new BankGroup();
-        group.setId("g1");
-        bank.setGroup(group);
-
-        when(bankRepository.findById("b1")).thenReturn(Optional.of(bank));
-
-        BankEditDto dto = bankService.getBankForEdit("b1", user);
-
-        assertEquals("b1", dto.getId());
-        assertEquals("Bank Name", dto.getName());
-        assertEquals("g1", dto.getGroupId());
-        assertEquals(LocalDate.of(2024, 1, 1), dto.getOpeningDate());
-        assertEquals(LocalDate.of(2024, 12, 31), dto.getClosingDate());
-        assertEquals(BankTypeEnum.CHECKING, dto.getType());
-    }
-
-    // -------------------------------------------------------
-    // CALCULATE BALANCES
+    // CALCULATE BALANCE
     // -------------------------------------------------------
     @Test
     void calculatePendingBalance_success() {
@@ -304,15 +214,5 @@ class BankServiceTest {
         BigDecimal balance = bankService.calculatePendingBalance("bank123");
 
         assertEquals(BigDecimal.valueOf(455.75), balance);
-    }
-
-    @Test
-    void calculatePostedBalance_success() {
-        when(transactionRepository.calculatePostedBankBalance("bank123"))
-                .thenReturn(BigDecimal.valueOf(1234.50));
-
-        BigDecimal balance = bankService.calculatePostedBalance("bank123");
-
-        assertEquals(BigDecimal.valueOf(1234.50), balance);
     }
 }

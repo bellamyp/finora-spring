@@ -1,8 +1,11 @@
 package com.bellamyphan.finora_spring.controller;
 
 import com.bellamyphan.finora_spring.constant.BankTypeEnum;
+import com.bellamyphan.finora_spring.dto.BankCreateDto;
 import com.bellamyphan.finora_spring.dto.BankDto;
-import com.bellamyphan.finora_spring.dto.BankEditDto;
+import com.bellamyphan.finora_spring.entity.Bank;
+import com.bellamyphan.finora_spring.entity.BankGroup;
+import com.bellamyphan.finora_spring.entity.BankType;
 import com.bellamyphan.finora_spring.entity.User;
 import com.bellamyphan.finora_spring.service.BankService;
 import com.bellamyphan.finora_spring.service.JwtService;
@@ -46,14 +49,15 @@ class BankControllerTest {
 
     @Test
     void getBanksByUser_returnsBankListWithBalances() {
+
         BankDto bankDto = new BankDto(
                 "bank123",
                 "group1",
                 "Checking Bank",
                 BankTypeEnum.CHECKING,
                 "user@example.com",
-                BigDecimal.valueOf(1000.50),
-                BigDecimal.valueOf(2000.75)
+                BigDecimal.valueOf(1000.50), // pendingBalance
+                BigDecimal.valueOf(2000.75)  // postedBalance
         );
 
         when(bankService.findBanksByUser(mockUser)).thenReturn(List.of(bankDto));
@@ -72,18 +76,22 @@ class BankControllerTest {
     }
 
     @Test
-    void getBankById_returnsBankSummary() {
-        BankDto bankDto = new BankDto(
-                "bank123",
-                "group1",
-                "Savings Bank",
-                BankTypeEnum.SAVINGS,
-                "user@example.com",
-                BigDecimal.valueOf(500.75),
-                BigDecimal.valueOf(1200.25)
-        );
+    void getBankById_returnsBankDetails() {
+        BankType bankType = new BankType(BankTypeEnum.SAVINGS);
 
-        when(bankService.getBankSummary("bank123", mockUser)).thenReturn(bankDto);
+        BankGroup group = new BankGroup();
+        group.setId("group1");
+
+        Bank bank = new Bank();
+        bank.setId("bank123");
+        bank.setName("Savings Bank");
+        bank.setType(bankType);
+        bank.setUser(mockUser);
+        bank.setGroup(group);
+
+        when(bankService.findBankById("bank123")).thenReturn(bank);
+        when(bankService.calculatePendingBalance("bank123")).thenReturn(BigDecimal.valueOf(500.75));
+        when(bankService.calculatePostedBalance("bank123")).thenReturn(BigDecimal.valueOf(1200.25));
 
         ResponseEntity<BankDto> response = controller.getBankById("bank123");
 
@@ -101,28 +109,25 @@ class BankControllerTest {
     }
 
     @Test
-    void getBankForEdit_returnsBankEditDto() {
-        BankEditDto editDto = new BankEditDto();
-        editDto.setId("bank123");
-        editDto.setName("Edit Bank");
-        editDto.setType(BankTypeEnum.CHECKING);
+    void getBankById_forbiddenIfUserMismatch() {
+        User otherUser = new User();
+        otherUser.setId("user2");
 
-        when(bankService.getBankForEdit("bank123", mockUser)).thenReturn(editDto);
+        Bank bank = new Bank();
+        bank.setId("bank123");
+        bank.setUser(otherUser);
 
-        ResponseEntity<BankEditDto> response = controller.getBankForEdit("bank123");
+        when(bankService.findBankById("bank123")).thenReturn(bank);
 
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertEquals("bank123", response.getBody().getId());
-        assertEquals("Edit Bank", response.getBody().getName());
-        assertEquals(BankTypeEnum.CHECKING, response.getBody().getType());
+        ResponseEntity<BankDto> response = controller.getBankById("bank123");
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
     }
 
     @Test
-    void createBank_success() {
-        BankEditDto editDto = new BankEditDto();
-        editDto.setName("New Bank");
-        editDto.setType(BankTypeEnum.CHECKING);
+    void createNewBank_success() {
+        BankCreateDto createDto = new BankCreateDto();
+        createDto.setName("New Bank");
+        createDto.setType(BankTypeEnum.CHECKING);
 
         BankDto savedBankDto = new BankDto(
                 "bank999",
@@ -130,13 +135,13 @@ class BankControllerTest {
                 "New Bank",
                 BankTypeEnum.CHECKING,
                 "user@example.com",
-                BigDecimal.ZERO,
-                BigDecimal.ZERO
+                BigDecimal.ZERO, // pendingBalance
+                BigDecimal.ZERO  // postedBalance
         );
 
-        when(bankService.createBank(editDto, mockUser)).thenReturn(savedBankDto);
+        when(bankService.createBank(createDto, mockUser)).thenReturn(savedBankDto);
 
-        ResponseEntity<BankDto> response = controller.createBank(editDto);
+        ResponseEntity<BankDto> response = controller.createNewBank(createDto);
 
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
 
@@ -149,39 +154,5 @@ class BankControllerTest {
         assertEquals("user@example.com", dto.getEmail());
         assertEquals(BigDecimal.ZERO, dto.getPendingBalance());
         assertEquals(BigDecimal.ZERO, dto.getPostedBalance());
-    }
-
-    @Test
-    void updateBank_success() {
-        BankEditDto editDto = new BankEditDto();
-        editDto.setId("bank123");
-        editDto.setName("Updated Bank");
-        editDto.setType(BankTypeEnum.SAVINGS);
-
-        BankDto updatedBankDto = new BankDto(
-                "bank123",
-                "group1",
-                "Updated Bank",
-                BankTypeEnum.SAVINGS,
-                "user@example.com",
-                BigDecimal.valueOf(100),
-                BigDecimal.valueOf(200)
-        );
-
-        when(bankService.updateBank(editDto, mockUser)).thenReturn(updatedBankDto);
-
-        ResponseEntity<BankDto> response = controller.updateBank(editDto);
-
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-
-        BankDto dto = response.getBody();
-        assertNotNull(dto);
-        assertEquals("bank123", dto.getId());
-        assertEquals("group1", dto.getGroupId());
-        assertEquals("Updated Bank", dto.getName());
-        assertEquals(BankTypeEnum.SAVINGS, dto.getType());
-        assertEquals("user@example.com", dto.getEmail());
-        assertEquals(BigDecimal.valueOf(100), dto.getPendingBalance());
-        assertEquals(BigDecimal.valueOf(200), dto.getPostedBalance());
     }
 }
