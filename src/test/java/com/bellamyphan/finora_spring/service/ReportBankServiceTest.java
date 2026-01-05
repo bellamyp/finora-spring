@@ -12,7 +12,9 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -45,24 +47,44 @@ class ReportBankServiceTest {
     }
 
     @Test
-    void saveBankBalances_shouldCalculateAndPersistBalances() {
+    void saveBankBalances_shouldCalculateAndPersistBalancesWithPrevious() {
         Report pendingReport = new Report();
         pendingReport.setId("r1");
         pendingReport.setPosted(false);
+        pendingReport.setMonth(LocalDate.of(2026, 1, 1));
+        pendingReport.setUser(new com.bellamyphan.finora_spring.entity.User());
+        pendingReport.getUser().setId("u1");
 
-        // Mock projection interface
-        ReportBankAggregate agg1 = mock(ReportBankAggregate.class);
-        when(agg1.getBankId()).thenReturn("b1");
-        when(agg1.getTotalAmount()).thenReturn(BigDecimal.valueOf(100));
+        // Mock previous report
+        Report previousReport = new Report();
+        previousReport.setId("r0");
+        previousReport.setPosted(true);
 
-        when(reportRepository.calculateLiveBankBalances("r1")).thenReturn(List.of(agg1));
+        when(reportRepository.findFirstByUserIdAndMonthBeforeOrderByMonthDesc("u1", pendingReport.getMonth()))
+                .thenReturn(Optional.of(previousReport));
 
+        ReportBank previousBalance = new ReportBank();
+        previousBalance.setBank(new Bank());
+        previousBalance.getBank().setId("b1");
+        previousBalance.setBalance(BigDecimal.valueOf(50));
+
+        when(reportBankRepository.findByReportId("r0")).thenReturn(List.of(previousBalance));
+
+        // Mock current aggregate
+        ReportBankAggregate agg = mock(ReportBankAggregate.class);
+        when(agg.getBankId()).thenReturn("b1");
+        when(agg.getTotalAmount()).thenReturn(BigDecimal.valueOf(100));
+        when(reportRepository.calculateLiveBankBalances("r1")).thenReturn(List.of(agg));
+
+        // Mock active banks
         Bank bank = new Bank();
         bank.setId("b1");
-        when(bankRepository.getReferenceById("b1")).thenReturn(bank);
+        when(bankRepository.findActiveBanksInMonth(eq("u1"), any(), any())).thenReturn(List.of(bank));
 
+        // Run service
         reportBankService.saveBankBalances(pendingReport);
 
+        // Verify persisted
         ArgumentCaptor<List<ReportBank>> captor = ArgumentCaptor.forClass(List.class);
         verify(reportBankRepository).saveAll(captor.capture());
 
@@ -70,7 +92,8 @@ class ReportBankServiceTest {
         assertEquals(1, saved.size());
         assertEquals(pendingReport, saved.get(0).getReport());
         assertEquals(bank, saved.get(0).getBank());
-        assertEquals(BigDecimal.valueOf(100), saved.get(0).getBalance());
+        // Previous 50 + current 100
+        assertEquals(BigDecimal.valueOf(150), saved.get(0).getBalance());
     }
 
     @Test
@@ -96,17 +119,24 @@ class ReportBankServiceTest {
         Report pendingReport = new Report();
         pendingReport.setId("r3");
         pendingReport.setPosted(false);
+        pendingReport.setMonth(LocalDate.of(2026, 1, 1));
+        pendingReport.setUser(new com.bellamyphan.finora_spring.entity.User());
+        pendingReport.getUser().setId("u1");
 
-        // Mock projection interface
+        // No previous report → previous balances empty
+        when(reportRepository.findFirstByUserIdAndMonthBeforeOrderByMonthDesc("u1", pendingReport.getMonth()))
+                .thenReturn(Optional.empty());
+
+        // Mock current aggregate
         ReportBankAggregate agg = mock(ReportBankAggregate.class);
         when(agg.getBankId()).thenReturn("b2");
         when(agg.getTotalAmount()).thenReturn(BigDecimal.valueOf(200));
-
         when(reportRepository.calculateLiveBankBalances("r3")).thenReturn(List.of(agg));
 
+        // Mock active banks
         Bank bank = new Bank();
         bank.setId("b2");
-        when(bankRepository.getReferenceById("b2")).thenReturn(bank);
+        when(bankRepository.findActiveBanksInMonth(eq("u1"), any(), any())).thenReturn(List.of(bank));
 
         List<ReportBank> result = reportBankService.getBankBalances(pendingReport);
 
@@ -114,5 +144,27 @@ class ReportBankServiceTest {
         assertEquals(pendingReport, result.get(0).getReport());
         assertEquals(bank, result.get(0).getBank());
         assertEquals(BigDecimal.valueOf(200), result.get(0).getBalance());
+    }
+
+    @Test
+    void calculateLiveBankBalances_shouldThrowIfPreviousNotPosted() {
+        Report pendingReport = new Report();
+        pendingReport.setId("r4");
+        pendingReport.setPosted(false);
+        pendingReport.setMonth(LocalDate.of(2026, 2, 1));
+        pendingReport.setUser(new com.bellamyphan.finora_spring.entity.User());
+        pendingReport.getUser().setId("u1");
+
+        Report previousReport = new Report();
+        previousReport.setId("r3");
+        previousReport.setPosted(false); // not posted
+
+        when(reportRepository.findFirstByUserIdAndMonthBeforeOrderByMonthDesc("u1", pendingReport.getMonth()))
+                .thenReturn(Optional.of(previousReport));
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+                () -> reportBankService.getBankBalances(pendingReport));
+
+        assertTrue(ex.getMessage().contains("Cannot calculate bank balances because the previous report is not posted"));
     }
 }
