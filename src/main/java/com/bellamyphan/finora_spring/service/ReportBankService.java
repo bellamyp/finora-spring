@@ -11,7 +11,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -64,17 +66,45 @@ public class ReportBankService {
      */
     private List<ReportBank> calculateLiveBankBalances(Report report) {
 
-        List<ReportBankAggregate> aggregates =
+        // 1️⃣ Find previous report
+        Optional<Report> previousReportOpt =
+                reportRepository.findPreviousReport(report.getUser().getId(), report.getMonth());
+
+        // 2️⃣ Determine previous balances
+        List<ReportBank> previousBalances;
+        if (previousReportOpt.isEmpty()) {
+            // First-ever report → previous balances = 0
+            previousBalances = List.of();
+        } else {
+            Report previousReport = previousReportOpt.get();
+            if (!previousReport.isPosted()) {
+                throw new IllegalStateException(
+                        "Cannot calculate bank balances because the previous report is not posted: "
+                                + previousReport.getId());
+            }
+            // Previous report is posted → read snapshot
+            previousBalances = reportBankRepository.findByReportId(previousReport.getId());
+        }
+
+        // 3️⃣ Calculate current live balances
+        List<ReportBankAggregate> currentAggregates =
                 reportRepository.calculateLiveBankBalances(report.getId());
 
-        return aggregates.stream()
+        // 4️⃣ Merge previous balances + current aggregates
+        return currentAggregates.stream()
                 .map(a -> {
                     Bank bank = bankRepository.getReferenceById(a.getBankId());
-                    // Create a temporary ReportBank object (not persisted)
+
+                    ReportBank previous = previousBalances.stream()
+                            .filter(rb -> rb.getBank().getId().equals(bank.getId()))
+                            .findFirst()
+                            .orElse(null);
+
                     ReportBank rb = new ReportBank();
                     rb.setReport(report);
                     rb.setBank(bank);
-                    rb.setBalance(a.getTotalAmount());
+                    rb.setBalance(a.getTotalAmount()
+                            .add(previous != null ? previous.getBalance() : BigDecimal.ZERO));
                     return rb;
                 })
                 .collect(Collectors.toList());

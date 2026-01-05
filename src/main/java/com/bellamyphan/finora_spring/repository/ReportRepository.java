@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.lang.NonNull;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -16,6 +17,18 @@ public interface ReportRepository extends JpaRepository<Report, String> {
 
     // All reports for a user, sorted by month descending
     List<Report> findAllByUserIdOrderByMonthDesc(@NonNull String userId);
+
+    @Query("""
+    SELECT r
+    FROM Report r
+    WHERE r.user.id = :userId
+      AND r.month < :currentMonth
+    ORDER BY r.month DESC
+    """)
+    Optional<Report> findPreviousReport(
+            @Param("userId") String userId,
+            @Param("currentMonth") LocalDate currentMonth
+    );
 
     // Check if user has at least 1 pending report
     boolean existsByUserIdAndIsPostedFalse(@NonNull String userId);
