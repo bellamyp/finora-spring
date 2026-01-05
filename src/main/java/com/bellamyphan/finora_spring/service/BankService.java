@@ -106,6 +106,67 @@ public class BankService {
     }
 
     /**
+     * Find active banks for a user (closingDate == null)
+     */
+    public List<BankDto> findActiveBanksByUser(User user) {
+        if (user == null) {
+            throw new IllegalArgumentException("User cannot be null");
+        }
+
+        List<Bank> banks = bankRepository.findByUser(user).stream()
+                .filter(bank -> bank.getClosingDate() == null) // only active banks
+                .sorted(Comparator.comparing(b -> b.getGroup().getName(), String.CASE_INSENSITIVE_ORDER))
+                .toList();
+
+        return banks.stream()
+                .map(bank -> {
+                    BigDecimal pendingBalance = calculatePendingBalance(bank.getId());
+                    BigDecimal postedBalance = calculatePostedBalance(bank.getId());
+                    return new BankDto(
+                            bank.getId(),
+                            bank.getGroup().getId(),
+                            bank.getName(),
+                            bank.getType().getType(),
+                            bank.getUser().getEmail(),
+                            pendingBalance,
+                            postedBalance
+                    );
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Find inactive banks for a user (closingDate != null)
+     */
+    public List<BankDto> findInactiveBanksByUser(User user) {
+        if (user == null) {
+            throw new IllegalArgumentException("User cannot be null");
+        }
+
+        List<Bank> banks = bankRepository.findByUser(user).stream()
+                .filter(bank -> bank.getClosingDate() != null) // only inactive banks
+                .sorted(Comparator.comparing(b -> b.getGroup().getName(), String.CASE_INSENSITIVE_ORDER))
+                .toList();
+
+        return banks.stream()
+                .map(bank -> {
+                    BigDecimal pendingBalance = calculatePendingBalance(bank.getId());
+                    BigDecimal postedBalance = calculatePostedBalance(bank.getId());
+                    return new BankDto(
+                            bank.getId(),
+                            bank.getGroup().getId(),
+                            bank.getName(),
+                            bank.getType().getType(),
+                            bank.getUser().getEmail(),
+                            pendingBalance,
+                            postedBalance
+                    );
+                })
+                .collect(Collectors.toList());
+    }
+
+
+    /**
      * Find a bank using bankId
      */
     public Bank findBankById(String bankId) {

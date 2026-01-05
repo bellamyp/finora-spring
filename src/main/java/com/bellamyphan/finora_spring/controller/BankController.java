@@ -24,12 +24,30 @@ public class BankController {
     private final JwtService jwtService;
 
     // -----------------------
-    // GET banks by user token
+    // GET all banks by user token
     // -----------------------
     @GetMapping
     public List<BankDto> getBanksByUser() {
         User user = jwtService.getCurrentUser();
         return bankService.findBanksByUser(user);
+    }
+
+    // -----------------------
+    // GET active banks (closingDate == null)
+    // -----------------------
+    @GetMapping("/active")
+    public List<BankDto> getActiveBanks() {
+        User user = jwtService.getCurrentUser();
+        return bankService.findActiveBanksByUser(user);
+    }
+
+    // -----------------------
+    // GET inactive banks (closingDate != null)
+    // -----------------------
+    @GetMapping("/inactive")
+    public List<BankDto> getInactiveBanks() {
+        User user = jwtService.getCurrentUser();
+        return bankService.findInactiveBanksByUser(user);
     }
 
     // -----------------------
