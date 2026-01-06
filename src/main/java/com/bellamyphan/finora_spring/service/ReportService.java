@@ -199,6 +199,11 @@ public class ReportService {
             throw new RuntimeException("Unauthorized access to report");
         }
 
+        // Cannot change if report is posted
+        if (report.isPosted()) {
+            throw new IllegalStateException("Report is already posted");
+        }
+
         // 3️⃣ Get all fully posted transaction groups for this user that are not yet assigned to a report
         List<TransactionGroupResponseDto> fullyPostedGroups = transactionGroupService
                 .getFullyPostedGroupsForNewReport(user);
